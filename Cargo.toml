@@ -1,0 +1,12 @@
+[package]
+name = "ssh_cfg"
+version = "0.1.0"
+authors = ["Azriel Hoh <azriel91@gmail.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+async-fs = "1.5.0"
+dirs = "3.0.1"
+futures-lite = "1.11.3"
