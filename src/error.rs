@@ -12,6 +12,11 @@ pub enum Error {
         /// The IO error.
         error: io::Error,
     },
+    /// Unknown SSH option in the SSH configuration file.
+    SshOptionUnknown {
+        /// The configuration option key.
+        key: String,
+    },
 }
 
 impl fmt::Display for Error {
@@ -23,6 +28,9 @@ impl fmt::Display for Error {
             Self::SshConfigOpen { path, .. } => {
                 write!(f, "Failed to open `{}`.", path.display())
             }
+            Self::SshOptionUnknown { key } => {
+                write!(f, "Unknown SSH configuration option `{}`.", key)
+            }
         }
     }
 }
@@ -32,6 +40,7 @@ impl std::error::Error for Error {
         match self {
             Self::HomeDirectoryDiscoverFail => None,
             Self::SshConfigOpen { error, .. } => Some(error),
+            Self::SshOptionUnknown { .. } => None,
         }
     }
 }

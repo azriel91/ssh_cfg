@@ -21,7 +21,7 @@ impl SshConfigParser {
                     error,
                 })?;
 
-        Ok(SshConfig {})
+        Ok(SshConfig(Default::default()))
     }
 
     /// Parses `~/.ssh/config`.
