@@ -1,4 +1,6 @@
-use std::{borrow::Cow, path::Path};
+use std::path::Path;
+
+use plain_path::PlainPathExt;
 
 use crate::{ConfigError, Error, SshConfig, SshHostConfig, SshOptionKey};
 
@@ -9,9 +11,9 @@ pub struct SshConfigParser;
 impl SshConfigParser {
     /// Returns the parsed SSH configuration.
     pub async fn parse(path: &Path) -> Result<SshConfig, Error> {
-        let path_normalized = Self::path_normalize(path)?;
+        let path = path.plain()?;
 
-        let contents = Self::ssh_config_contents(&path_normalized).await?;
+        let contents = Self::ssh_config_contents(&path).await?;
         let ssh_config = Self::parse_config_contents(&contents)?;
 
         Ok(ssh_config)
@@ -24,15 +26,15 @@ impl SshConfigParser {
             ssh_path.push("config");
             Self::parse(&ssh_path).await
         } else {
-            Err(Error::HomeDirectoryDiscoverFail)
+            Err(Error::HomeDirNotFound)
         }
     }
 
-    async fn ssh_config_contents(path_normalized: &Path) -> Result<String, Error> {
-        async_fs::read_to_string(path_normalized)
+    async fn ssh_config_contents(path: &Path) -> Result<String, Error> {
+        async_fs::read_to_string(path)
             .await
             .map_err(|error| Error::SshConfigRead {
-                path: path_normalized.to_path_buf(),
+                path: path.to_path_buf(),
                 error,
             })
     }
@@ -125,20 +127,6 @@ impl SshConfigParser {
             (Some(key), Some(value)) => Some((key.trim(), value.trim())),
             (Some(_), None) => None,
             _ => unreachable!("Empty lines are filtered."),
-        }
-    }
-
-    fn path_normalize(path: &Path) -> Result<Cow<'_, Path>, Error> {
-        if path.starts_with("~") {
-            // Replace `~` with user's home directory.
-            if let Some(mut path_normalized) = dirs::home_dir() {
-                path_normalized.extend(path.into_iter().skip(1));
-                Ok(Cow::Owned(path_normalized))
-            } else {
-                Err(Error::HomeDirectoryDiscoverFail)
-            }
-        } else {
-            Ok(Cow::Borrowed(path))
         }
     }
 }

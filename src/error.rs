@@ -11,7 +11,7 @@ pub enum Error {
         errors: Vec<ConfigError>,
     },
     /// Failed to discover the user's home directory.
-    HomeDirectoryDiscoverFail,
+    HomeDirNotFound,
     /// Failed to read SSH configuration file.
     SshConfigRead {
         /// The path to the SSH file.
@@ -33,9 +33,7 @@ impl fmt::Display for Error {
 
                 writeln!(f)
             }
-            Self::HomeDirectoryDiscoverFail => {
-                write!(f, "Failed to discover user's home directory.")
-            }
+            Self::HomeDirNotFound => write!(f, "Failed to determine user's home directory."),
             Self::SshConfigRead { path, .. } => {
                 write!(f, "Failed to read `{}`.", path.display())
             }
@@ -43,11 +41,17 @@ impl fmt::Display for Error {
     }
 }
 
+impl From<plain_path::HomeDirNotFound> for Error {
+    fn from(_: plain_path::HomeDirNotFound) -> Self {
+        Self::HomeDirNotFound
+    }
+}
+
 impl std::error::Error for Error {
     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
         match self {
             Self::ConfigErrors { .. } => None,
-            Self::HomeDirectoryDiscoverFail => None,
+            Self::HomeDirNotFound => None,
             Self::SshConfigRead { error, .. } => Some(error),
         }
     }
