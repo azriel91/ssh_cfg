@@ -2,14 +2,14 @@ use std::ops::{Deref, DerefMut};
 
 use indexmap::IndexMap;
 
-use crate::{SshHostConfig, SshOptionKey};
+use crate::SshHostConfig;
 
 /// Parsed SSH config file.
-#[derive(Clone, Debug, PartialEq)]
-pub struct SshConfig(pub IndexMap<SshOptionKey, SshHostConfig>);
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct SshConfig(pub IndexMap<String, SshHostConfig>);
 
 impl Deref for SshConfig {
-    type Target = IndexMap<SshOptionKey, SshHostConfig>;
+    type Target = IndexMap<String, SshHostConfig>;
 
     fn deref(&self) -> &Self::Target {
         &self.0

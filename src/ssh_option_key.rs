@@ -1,10 +1,10 @@
-use std::str::FromStr;
+use std::{fmt, str::FromStr};
 
-use crate::Error;
+use crate::ConfigError;
 
 /// SSH option keys inside the SSH configuration file.
 ///
-/// See https://linux.die.net/man/5/ssh_config
+/// See <https://linux.die.net/man/5/ssh_config>
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum SshOptionKey {
     /// Restricts the following declarations (up to the next `Host` keyword) to
@@ -17,7 +17,7 @@ pub enum SshOptionKey {
     /// command line (i.e. the name is not converted to a canonicalized host
     /// name before matching).
     ///
-    /// See [Patterns] for more information on patterns.
+    /// See [Patterns](index.html#patterns) for more information on patterns.
     Host,
 
     /// Specifies which address family to use when connecting.
@@ -563,7 +563,7 @@ pub enum SshOptionKey {
     /// separated by whitespace or spread across multiple SendEnv directives.
     /// The default is not to send any environment variables.
     ///
-    /// See [Patterns] for more information on patterns.
+    /// See [Patterns](index.html#patterns) for more information on patterns.
     SendEnv,
 
     /// Sets the number of server alive messages (see below) which may be sent
@@ -698,7 +698,7 @@ pub enum SshOptionKey {
 }
 
 impl FromStr for SshOptionKey {
-    type Err = Error;
+    type Err = ConfigError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         if s.eq_ignore_ascii_case("host") {
@@ -839,8 +839,87 @@ impl FromStr for SshOptionKey {
             Ok(Self::VerifyHostKeyDNS)
         } else if s.eq_ignore_ascii_case("visualhostkey") {
             Ok(Self::VisualHostKey)
+        } else if s.eq_ignore_ascii_case("xauthlocation") {
+            Ok(Self::XAuthLocation)
         } else {
-            Err(Error::SshOptionUnknown { key: s.to_string() })
+            Err(ConfigError::SshOptionUnknown { key: s.to_string() })
+        }
+    }
+}
+
+impl fmt::Display for SshOptionKey {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            Self::Host => write!(f, "Host"),
+            Self::AddressFamily => write!(f, "AddressFamily"),
+            Self::BatchMode => write!(f, "BatchMode"),
+            Self::BindAddress => write!(f, "BindAddress"),
+            Self::ChallengeResponseAuthentication => write!(f, "ChallengeResponseAuthentication"),
+            Self::CheckHostIP => write!(f, "CheckHostIP"),
+            Self::Cipher => write!(f, "Cipher"),
+            Self::Ciphers => write!(f, "Ciphers"),
+            Self::ClearAllForwardings => write!(f, "ClearAllForwardings"),
+            Self::Compression => write!(f, "Compression"),
+            Self::CompressionLevel => write!(f, "CompressionLevel"),
+            Self::ConnectionAttempts => write!(f, "ConnectionAttempts"),
+            Self::ConnectTimeout => write!(f, "ConnectTimeout"),
+            Self::ControlMaster => write!(f, "ControlMaster"),
+            Self::ControlPath => write!(f, "ControlPath"),
+            Self::DynamicForward => write!(f, "DynamicForward"),
+            Self::EnableSSHKeysign => write!(f, "EnableSSHKeysign"),
+            Self::EscapeChar => write!(f, "EscapeChar"),
+            Self::ExitOnForwardFailure => write!(f, "ExitOnForwardFailure"),
+            Self::ForwardAgent => write!(f, "ForwardAgent"),
+            Self::ForwardX11 => write!(f, "ForwardX11"),
+            Self::ForwardX11Trusted => write!(f, "ForwardX11Trusted"),
+            Self::GatewayPorts => write!(f, "GatewayPorts"),
+            Self::GlobalKnownHostsFile => write!(f, "GlobalKnownHostsFile"),
+            Self::GSSAPIAuthentication => write!(f, "GSSAPIAuthentication"),
+            Self::GSSAPIKeyExchange => write!(f, "GSSAPIKeyExchange"),
+            Self::GSSAPIClientIdentity => write!(f, "GSSAPIClientIdentity"),
+            Self::GSSAPIDelegateCredentials => write!(f, "GSSAPIDelegateCredentials"),
+            Self::GSSAPIRenewalForcesRekey => write!(f, "GSSAPIRenewalForcesRekey"),
+            Self::GSSAPITrustDns => write!(f, "GSSAPITrustDns"),
+            Self::HashKnownHosts => write!(f, "HashKnownHosts"),
+            Self::HostbasedAuthentication => write!(f, "HostbasedAuthentication"),
+            Self::HostKeyAlgorithms => write!(f, "HostKeyAlgorithms"),
+            Self::HostKeyAlias => write!(f, "HostKeyAlias"),
+            Self::HostName => write!(f, "HostName"),
+            Self::IdentitiesOnly => write!(f, "IdentitiesOnly"),
+            Self::IdentityFile => write!(f, "IdentityFile"),
+            Self::KbdInteractiveAuthentication => write!(f, "KbdInteractiveAuthentication"),
+            Self::KbdInteractiveDevices => write!(f, "KbdInteractiveDevices"),
+            Self::LocalCommand => write!(f, "LocalCommand"),
+            Self::LocalForward => write!(f, "LocalForward"),
+            Self::LogLevel => write!(f, "LogLevel"),
+            Self::MACs => write!(f, "MACs"),
+            Self::NoHostAuthenticationForLocalhost => write!(f, "NoHostAuthenticationForLocalhost"),
+            Self::NumberOfPasswordPrompts => write!(f, "NumberOfPasswordPrompts"),
+            Self::PasswordAuthentication => write!(f, "PasswordAuthentication"),
+            Self::PermitLocalCommand => write!(f, "PermitLocalCommand"),
+            Self::Port => write!(f, "Port"),
+            Self::PreferredAuthentications => write!(f, "PreferredAuthentications"),
+            Self::Protocol => write!(f, "Protocol"),
+            Self::ProxyCommand => write!(f, "ProxyCommand"),
+            Self::PubkeyAuthentication => write!(f, "PubkeyAuthentication"),
+            Self::RekeyLimit => write!(f, "RekeyLimit"),
+            Self::RemoteForward => write!(f, "RemoteForward"),
+            Self::RhostsRSAAuthentication => write!(f, "RhostsRSAAuthentication"),
+            Self::RSAAuthentication => write!(f, "RSAAuthentication"),
+            Self::SendEnv => write!(f, "SendEnv"),
+            Self::ServerAliveCountMax => write!(f, "ServerAliveCountMax"),
+            Self::ServerAliveInterval => write!(f, "ServerAliveInterval"),
+            Self::SmartcardDevice => write!(f, "SmartcardDevice"),
+            Self::StrictHostKeyChecking => write!(f, "StrictHostKeyChecking"),
+            Self::TCPKeepAlive => write!(f, "TCPKeepAlive"),
+            Self::Tunnel => write!(f, "Tunnel"),
+            Self::TunnelDevice => write!(f, "TunnelDevice"),
+            Self::UsePrivilegedPort => write!(f, "UsePrivilegedPort"),
+            Self::User => write!(f, "User"),
+            Self::UserKnownHostsFile => write!(f, "UserKnownHostsFile"),
+            Self::VerifyHostKeyDNS => write!(f, "VerifyHostKeyDNS"),
+            Self::VisualHostKey => write!(f, "VisualHostKey"),
+            Self::XAuthLocation => write!(f, "XAuthLocation"),
         }
     }
 }

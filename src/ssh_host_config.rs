@@ -5,10 +5,7 @@ use indexmap::IndexMap;
 use crate::SshOptionKey;
 
 /// Keys for a particular SSH host.
-///
-/// Ideally we don't store the values as strings, but actually parse them into a
-/// strong data model.
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct SshHostConfig(pub IndexMap<SshOptionKey, String>);
 
 impl Deref for SshHostConfig {
