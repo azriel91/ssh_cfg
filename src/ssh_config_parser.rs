@@ -37,7 +37,12 @@ impl SshConfigParser {
             })
     }
 
-    fn parse_config_contents(ssh_config_contents: &str) -> Result<SshConfig, Error> {
+    /// Parses SSH configuration in memory.
+    ///
+    /// # Parameters
+    ///
+    /// * `ssh_config_contents`: The SSH configuration.
+    pub fn parse_config_contents(ssh_config_contents: &str) -> Result<SshConfig, Error> {
         let mut errors = Vec::new();
         let mut kv_pairs = Self::kv_pairs(ssh_config_contents, &mut errors).into_iter();
 
