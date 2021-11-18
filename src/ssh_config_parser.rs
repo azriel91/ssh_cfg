@@ -46,12 +46,12 @@ impl SshConfigParser {
     /// * `ssh_config_contents`: The SSH configuration.
     pub fn parse_config_contents(ssh_config_contents: &str) -> Result<SshConfig, Error> {
         let mut errors = Vec::new();
-        let mut kv_pairs = Self::kv_pairs(ssh_config_contents, &mut errors).into_iter();
+        let kv_pairs = Self::kv_pairs(ssh_config_contents, &mut errors).into_iter();
 
         let mut ssh_config = SshConfig::default();
         let mut current_host = None;
         let mut ssh_host_config = SshHostConfig::default();
-        while let Some((key, value)) = kv_pairs.next() {
+        for (key, value) in kv_pairs {
             let ssh_option_key = match key.parse::<SshOptionKey>() {
                 Ok(ssh_option_key) => ssh_option_key,
                 Err(error) => {
@@ -98,7 +98,7 @@ impl SshConfigParser {
         ssh_config_contents
             .lines()
             // Only consider content before the first `#`
-            .filter_map(|line| line.splitn(2, '#').next())
+            .map(|line| line.split_once('#').map_or(line, |split| split.0))
             .map(str::trim)
             .filter(|line| !line.is_empty())
             .filter_map(|line| {
@@ -118,7 +118,7 @@ impl SshConfigParser {
     }
 
     /// Returns the key and value split by the given character.
-    fn kv_split_by<'line>(line: &'line str, separator: char) -> Option<(&'line str, &'line str)> {
+    fn kv_split_by(line: &str, separator: char) -> Option<(&str, &str)> {
         let mut kv_split = line.splitn(2, separator);
         let key = kv_split.next();
         let value = kv_split.next();
