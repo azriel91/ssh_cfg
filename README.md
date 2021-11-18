@@ -1,5 +1,9 @@
 # 🌐 SSH Cfg
 
+[![Crates.io](https://img.shields.io/crates/v/ssh_cfg.svg)](https://crates.io/crates/ssh_cfg)
+[![docs.rs](https://img.shields.io/docsrs/ssh_cfg)](https://docs.rs/ssh_cfg)
+![CI](https://github.com/azriel91/ssh_cfg/workflows/CI/badge.svg)
+
 Parses `~/.ssh/config` asynchronously.
 
 ```rust
