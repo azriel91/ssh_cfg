@@ -153,6 +153,18 @@ pub enum SshOptionKey {
     /// and `%r. This ensures that shared connections are uniquely identified.
     ControlPath,
 
+    /// When used in conjunction with ControlMaster, specifies that the master
+    ///  connection should remain open in the background (waiting for future
+    ///  client connections) after the initial client connection has been closed.
+    ///  If set to no (the default), then the master connection will not be placed
+    /// into the background, and will close as soon as the initial client connection
+    ///  is closed. If set to yes or 0, then the master connection will remain in
+    /// the background indefinitely (until killed or closed via a mechanism such as
+    /// the "ssh -O exit"). If set to a time in seconds, or a time in any of the formats
+    /// documented in sshd_config(5), then the backgrounded master connection will automatically
+    /// terminate after it has remained idle (with no client connections) for the specified time.
+    ControlPersist,
+
     /// Specifies that a TCP port on the local machine be forwarded over the
     /// secure channel, and the application protocol is then used to determine
     /// where to connect to from the remote machine.
@@ -515,6 +527,12 @@ pub enum SshOptionKey {
     /// cipher. This option applies to protocol version 2 only.
     RekeyLimit,
 
+    /// Specifies a command to execute on the remote machine after successfully
+    ///  connecting to the server. The command string extends to the end of the
+    ///  line, and is executed with the user's shell. Arguments to RemoteCommand
+    ///  accept the tokens described in the TOKENS section.
+    RemoteCommand,
+
     /// Specifies that a TCP port on the remote machine be forwarded over the
     /// secure channel to the specified host and port from the local machine.
     ///
@@ -535,6 +553,13 @@ pub enum SshOptionKey {
     /// remote bind_address will only succeed if the server's GatewayPorts
     /// option is enabled (see sshd_config(5)).
     RemoteForward,
+
+    /// Specifies whether to request a pseudo-tty for the session. The
+    /// argument may be one of: no (never request a TTY), yes (always
+    ///  request a TTY when standard input is a TTY), force (always
+    /// request a TTY) or auto (request a TTY when opening a login
+    ///  session). This option mirrors the -t and -T flags for ssh(1).
+    RequestTTY,
 
     /// Specifies whether to try rhosts based authentication with RSA host
     /// authentication.
@@ -695,8 +720,525 @@ pub enum SshOptionKey {
     ///
     /// The default is `/usr/bin/xauth`.
     XAuthLocation,
-}
 
+    /// Restricts the following declarations (up to the next Host
+    /// or Match keyword) to be used only when the conditions
+    /// following the Match keyword are satisfied.  Match
+    /// conditions are specified using one or more criteria or the
+    /// single token all which always matches.  The available
+    /// criteria keywords are: canonical, final, exec, host,
+    /// originalhost, user, and localuser.  The all criteria must
+    /// appear alone or immediately after canonical or final.
+    /// Other criteria may be combined arbitrarily.  All criteria
+    /// but all, canonical, and final require an argument.
+    /// Criteria may be negated by prepending an exclamation mark
+    /// (‘!’).
+    ///
+    /// The canonical keyword matches only when the configuration
+    /// file is being re-parsed after hostname canonicalization
+    /// (see the CanonicalizeHostname option).  This may be useful
+    /// to specify conditions that work with canonical host names
+    /// only.
+    ///
+    /// The final keyword requests that the configuration be re-
+    /// parsed (regardless of whether CanonicalizeHostname is
+    /// enabled), and matches only during this final pass.  If
+    /// CanonicalizeHostname is enabled, then canonical and final
+    /// match during the same pass.
+    ///
+    /// The exec keyword executes the specified command under the
+    /// user's shell.  If the command returns a zero exit status
+    /// then the condition is considered true.  Commands containing
+    /// whitespace characters must be quoted.  Arguments to exec
+    /// accept the tokens described in the TOKENS section.
+    ///
+    /// The other keywords' criteria must be single entries or
+    /// comma-separated lists and may use the wildcard and negation
+    /// operators described in the PATTERNS section.  The criteria
+    /// for the host keyword are matched against the target
+    /// hostname, after any substitution by the Hostname or
+    /// CanonicalizeHostname options.  The originalhost keyword
+    /// matches against the hostname as it was specified on the
+    /// command-line.  The user keyword matches against the target
+    /// username on the remote host.  The localuser keyword matches
+    /// against the name of the local user running ssh(1) (this
+    /// keyword may be useful in system-wide ssh_config files).
+    Match,
+    /// Specifies whether keys should be automatically added to a
+    /// running ssh-agent(1).  If this option is set to yes and a
+    /// key is loaded from a file, the key and its passphrase are
+    /// added to the agent with the default lifetime, as if by
+    /// ssh-add(1).  If this option is set to ask, ssh(1) will
+    /// require confirmation using the SSH_ASKPASS program before
+    /// adding a key (see ssh-add(1) for details).  If this option
+    /// is set to confirm, each use of the key must be confirmed,
+    /// as if the -c option was specified to ssh-add(1).  If this
+    /// option is set to no, no keys are added to the agent.
+    /// Alternately, this option may be specified as a time
+    /// interval using the format described in the TIME FORMATS
+    /// section of sshd_config(5) to specify the key's lifetime in
+    /// ssh-agent(1), after which it will automatically be removed.
+    /// The argument must be no (the default), yes, confirm
+    /// (optionally followed by a time interval), ask or a time
+    /// interval.
+    AddKeysToAgent,
+
+    /// Use the address of the specified interface on the local
+    /// machine as the source address of the connection.
+    BindInterface,
+
+    /// When CanonicalizeHostname is enabled, this option specifies
+    /// the list of domain suffixes in which to search for the
+    /// specified destination host.
+    CanonicalDomains,
+
+    /// Specifies whether to fail with an error when hostname
+    /// canonicalization fails.  The default, yes, will attempt to
+    /// look up the unqualified hostname using the system
+    /// resolver's search rules.  A value of no will cause ssh(1)
+    /// to fail instantly if CanonicalizeHostname is enabled and
+    /// the target hostname cannot be found in any of the domains
+    /// specified by CanonicalDomains.
+    CanonicalizeFallbackLocal,
+
+    /// Controls whether explicit hostname canonicalization is
+    /// performed.  The default, no, is not to perform any name
+    /// rewriting and let the system resolver handle all hostname
+    /// lookups.  If set to yes then, for connections that do not
+    /// use a ProxyCommand or ProxyJump, ssh(1) will attempt to
+    /// canonicalize the hostname specified on the command line
+    /// using the CanonicalDomains suffixes and
+    /// CanonicalizePermittedCNAMEs rules.  If CanonicalizeHostname
+    /// is set to always, then canonicalization is applied to
+    /// proxied connections too.
+    ///
+    /// If this option is enabled, then the configuration files are
+    /// processed again using the new target name to pick up any
+    /// new configuration in matching Host and Match stanzas.  A
+    /// value of none disables the use of a ProxyJump host.
+    CanonicalizeHostname,
+
+    /// Specifies the maximum number of dot characters in a
+    /// hostname before canonicalization is disabled.  The default,
+    /// 1, allows a single dot (i.e. hostname.subdomain).
+    CanonicalizeMaxDots,
+
+    /// Specifies rules to determine whether CNAMEs should be
+    /// followed when canonicalizing hostnames.  The rules consist
+    /// of one or more arguments of
+    /// source_domain_list:target_domain_list, where
+    /// source_domain_list is a pattern-list of domains that may
+    /// follow CNAMEs in canonicalization, and target_domain_list
+    /// is a pattern-list of domains that they may resolve to.
+    ///
+    /// For example,
+    /// "*.a.example.com:*.b.example.com,*.c.example.com" will
+    /// allow hostnames matching "*.a.example.com" to be
+    /// canonicalized to names in the "*.b.example.com" or
+    /// "*.c.example.com" domains.
+    CanonicalizePermittedCNAMEs,
+
+    /// Specifies which algorithms are allowed for signing of
+    /// certificates by certificate authorities (CAs).  The default
+    /// is:
+    ///
+    ///       ssh-ed25519,ecdsa-sha2-nistp256,
+    ///       ecdsa-sha2-nistp384,ecdsa-sha2-nistp521,
+    ///       sk-ssh-ed25519@openssh.com,
+    ///       sk-ecdsa-sha2-nistp256@openssh.com,
+    ///       rsa-sha2-512,rsa-sha2-256
+    ///
+    /// If the specified list begins with a ‘+’ character, then the
+    /// specified algorithms will be appended to the default set
+    /// instead of replacing them.  If the specified list begins
+    /// with a ‘-’ character, then the specified algorithms
+    /// (including wildcards) will be removed from the default set
+    /// instead of replacing them.
+    ///
+    /// ssh(1) will not accept host certificates signed using
+    /// algorithms other than those specified.
+    CASignatureAlgorithms,
+
+    /// Specifies a file from which the user's certificate is read.
+    /// A corresponding private key must be provided separately in
+    /// order to use this certificate either from an IdentityFile
+    /// directive or -i flag to ssh(1), via ssh-agent(1), or via a
+    /// PKCS11Provider or SecurityKeyProvider.
+    ///
+    /// Arguments to CertificateFile may use the tilde syntax to
+    /// refer to a user's home directory, the tokens described in
+    /// the TOKENS section and environment variables as described
+    /// in the ENVIRONMENT VARIABLES section.
+    ///
+    /// It is possible to have multiple certificate files specified
+    /// in configuration files; these certificates will be tried in
+    /// sequence.  Multiple CertificateFile directives will add to
+    /// the list of certificates used for authentication.
+    CertificateFile,
+
+    /// Specifies the hash algorithm used when displaying key
+    /// fingerprints.  Valid options are: md5 and sha256 (the
+    /// default).
+    FingerprintHash,
+
+    /// Requests ssh to go to background just before command
+    /// execution.  This is useful if ssh is going to ask for
+    /// passwords or passphrases, but the user wants it in the
+    /// background.  This implies the StdinNull configuration
+    /// option being set to “yes”.  The recommended way to start
+    /// X11 programs at a remote site is with something like ssh -f
+    /// host xterm, which is the same as ssh host xterm if the
+    /// ForkAfterAuthentication configuration option is set to
+    /// “yes”.
+    ///
+    /// If the ExitOnForwardFailure configuration option is set to
+    /// “yes”, then a client started with the
+    /// ForkAfterAuthentication configuration option being set to
+    /// “yes” will wait for all remote port forwards to be
+    /// successfully established before placing itself in the
+    /// background.  The argument to this keyword must be yes (same
+    /// as the -f option) or no (the default).
+    ForkAfterAuthentication,
+
+    /// Specify a timeout for untrusted X11 forwarding using the
+    /// format described in the TIME FORMATS section of
+    /// sshd_config(5).  X11 connections received by ssh(1) after
+    /// this time will be refused.  Setting ForwardX11Timeout to
+    /// zero will disable the timeout and permit X11 forwarding for
+    /// the life of the connection.  The default is to disable
+    /// untrusted X11 forwarding after twenty minutes has elapsed.
+    ForwardX11Timeout,
+
+    /// Specifies the signature algorithms that will be used for
+    /// hostbased authentication as a comma-separated list of
+    /// patterns.  Alternately if the specified list begins with a
+    /// ‘+’ character, then the specified signature algorithms will
+    /// be appended to the default set instead of replacing them.
+    /// If the specified list begins with a ‘-’ character, then the
+    /// specified signature algorithms (including wildcards) will
+    /// be removed from the default set instead of replacing them.
+    /// If the specified list begins with a ‘^’ character, then the
+    /// specified signature algorithms will be placed at the head
+    /// of the default set.  The default for this option is:
+    ///
+    ///    ssh-ed25519-cert-v01@openssh.com,
+    ///    ecdsa-sha2-nistp256-cert-v01@openssh.com,
+    ///    ecdsa-sha2-nistp384-cert-v01@openssh.com,
+    ///    ecdsa-sha2-nistp521-cert-v01@openssh.com,
+    ///    sk-ssh-ed25519-cert-v01@openssh.com,
+    ///    sk-ecdsa-sha2-nistp256-cert-v01@openssh.com,
+    ///    rsa-sha2-512-cert-v01@openssh.com,
+    ///    rsa-sha2-256-cert-v01@openssh.com,
+    ///    ssh-rsa-cert-v01@openssh.com,
+    ///    ssh-ed25519,
+    ///    ecdsa-sha2-nistp256,ecdsa-sha2-nistp384,ecdsa-sha2-nistp521,
+    ///    sk-ssh-ed25519@openssh.com,
+    ///    sk-ecdsa-sha2-nistp256@openssh.com,
+    ///    rsa-sha2-512,rsa-sha2-256,ssh-rsa
+    ///
+    /// The -Q option of ssh(1) may be used to list supported
+    /// signature algorithms.  This was formerly named
+    /// HostbasedKeyTypes.
+    HostbasedAcceptedAlgorithms,
+
+    /// Specifies the real host name to log into.  This can be used
+    /// to specify nicknames or abbreviations for hosts.  Arguments
+    /// to Hostname accept the tokens described in the TOKENS
+    /// section.  Numeric IP addresses are also permitted (both on
+    /// the command line and in Hostname specifications).  The
+    /// default is the name given on the command line.
+    Hostname,
+
+    /// Specifies the UNIX-domain socket used to communicate with
+    /// the authentication agent.
+    ///
+    /// This option overrides the SSH_AUTH_SOCK environment
+    /// variable and can be used to select a specific agent.
+    /// Setting the socket name to none disables the use of an
+    /// authentication agent.  If the string "SSH_AUTH_SOCK" is
+    /// specified, the location of the socket will be read from the
+    /// SSH_AUTH_SOCK environment variable.  Otherwise if the
+    /// specified value begins with a ‘$’ character, then it will
+    /// be treated as an environment variable containing the
+    /// location of the socket.
+    ///
+    /// Arguments to IdentityAgent may use the tilde syntax to
+    /// refer to a user's home directory, the tokens described in
+    /// the TOKENS section and environment variables as described
+    /// in the ENVIRONMENT VARIABLES section.
+    IdentityAgent,
+
+    /// Specifies a pattern-list of unknown options to be ignored
+    /// if they are encountered in configuration parsing.  This may
+    /// be used to suppress errors if ssh_config contains options
+    /// that are unrecognised by ssh(1).  It is recommended that
+    /// IgnoreUnknown be listed early in the configuration file as
+    /// it will not be applied to unknown options that appear
+    /// before it.
+    IgnoreUnknown,
+
+    /// Include the specified configuration file(s).  Multiple
+    /// pathnames may be specified and each pathname may contain
+    /// glob(7) wildcards and, for user configurations, shell-like
+    /// ‘~’ references to user home directories.  Wildcards will be
+    /// expanded and processed in lexical order.  Files without
+    /// absolute paths are assumed to be in ~/.ssh if included in a
+    /// user configuration file or /etc/ssh if included from the
+    /// system configuration file.  Include directive may appear
+    /// inside a Match or Host block to perform conditional
+    /// inclusion.
+    Include,
+
+    /// Specifies the IPv4 type-of-service or DSCP class for
+    /// connections.  Accepted values are af11, af12, af13, af21,
+    /// af22, af23, af31, af32, af33, af41, af42, af43, cs0, cs1,
+    /// cs2, cs3, cs4, cs5, cs6, cs7, ef, le, lowdelay, throughput,
+    /// reliability, a numeric value, or none to use the operating
+    /// system default.  This option may take one or two arguments,
+    /// separated by whitespace.  If one argument is specified, it
+    /// is used as the packet class unconditionally.  If two values
+    /// are specified, the first is automatically selected for
+    /// interactive sessions and the second for non-interactive
+    /// sessions.  The default is af21 (Low-Latency Data) for
+    /// interactive sessions and cs1 (Lower Effort) for non-
+    /// interactive sessions.
+    IPQoS,
+
+    /// Specifies the available KEX (Key Exchange) algorithms.
+    /// Multiple algorithms must be comma-separated.  If the
+    /// specified list begins with a ‘+’ character, then the
+    /// specified methods will be appended to the default set
+    /// instead of replacing them.  If the specified list begins
+    /// with a ‘-’ character, then the specified methods (including
+    /// wildcards) will be removed from the default set instead of
+    /// replacing them.  If the specified list begins with a ‘^’
+    /// character, then the specified methods will be placed at the
+    /// head of the default set.  The default is:
+    ///
+    ///       curve25519-sha256,curve25519-sha256@libssh.org,
+    ///       ecdh-sha2-nistp256,ecdh-sha2-nistp384,ecdh-sha2-nistp521,
+    ///       diffie-hellman-group-exchange-sha256,
+    ///       diffie-hellman-group16-sha512,
+    ///       diffie-hellman-group18-sha512,
+    ///       diffie-hellman-group14-sha256
+    ///
+    /// The list of available key exchange algorithms may also be
+    /// obtained using "ssh -Q kex".
+    KexAlgorithms,
+
+    /// Specifies a command to use to obtain a list of host keys,
+    /// in addition to those listed in UserKnownHostsFile and
+    /// GlobalKnownHostsFile.  This command is executed after the
+    /// files have been read.  It may write host key lines to
+    /// standard output in identical format to the usual files
+    /// (described in the VERIFYING HOST KEYS section in ssh(1)).
+    /// Arguments to KnownHostsCommand accept the tokens described
+    /// in the TOKENS section.  The command may be invoked multiple
+    /// times per connection: once when preparing the preference
+    /// list of host key algorithms to use, again to obtain the
+    /// host key for the requested host name and, if CheckHostIP is
+    /// enabled, one more time to obtain the host key matching the
+    /// server's address.  If the command exits abnormally or
+    /// returns a non-zero exit status then the connection is
+    /// terminated.
+    KnownHostsCommand,
+
+    /// Specify one or more overrides to LogLevel.  An override
+    /// consists of a pattern lists that matches the source file,
+    /// function and line number to force detailed logging for.
+    /// For example, an override pattern of:
+    ///
+    ///       kex.c:*:1000,*:kex_exchange_identification():*,packet.c:*
+    ///
+    /// would enable detailed logging for line 1000 of kex.c,
+    /// everything in the kex_exchange_identification() function,
+    /// and all code in the packet.c file.  This option is intended
+    /// for debugging and no overrides are enabled by default.
+    LogVerbose,
+
+    /// Specifies the destinations to which remote TCP port
+    /// forwarding is permitted when RemoteForward is used as a
+    /// SOCKS proxy.  The forwarding specification must be one of
+    /// the following forms:
+    ///
+    ///       PermitRemoteOpen host:port
+    ///       PermitRemoteOpen IPv4_addr:port
+    ///       PermitRemoteOpen [IPv6_addr]:port
+    ///
+    /// Multiple forwards may be specified by separating them with
+    /// whitespace.  An argument of any can be used to remove all
+    /// restrictions and permit any forwarding requests.  An
+    /// argument of none can be used to prohibit all forwarding
+    /// requests.  The wildcard ‘*’ can be used for host or port to
+    /// allow all hosts or ports respectively.  Otherwise, no
+    /// pattern matching or address lookups are performed on
+    /// supplied names.
+    PermitRemoteOpen,
+
+    /// Specifies which PKCS#11 provider to use or none to indicate
+    /// that no provider should be used (the default).  The
+    /// argument to this keyword is a path to the PKCS#11 shared
+    /// library ssh(1) should use to communicate with a PKCS#11
+    /// token providing keys for user authentication.
+    PKCS11Provider,
+
+    /// Specifies one or more jump proxies as either
+    /// [user@]host[:port] or an ssh URI.  Multiple proxies may be
+    /// separated by comma characters and will be visited
+    /// sequentially.  Setting this option will cause ssh(1) to
+    /// connect to the target host by first making a ssh(1)
+    /// connection to the specified ProxyJump host and then
+    /// establishing a TCP forwarding to the ultimate target from
+    /// there.  Setting the host to none disables this option
+    /// entirely.
+    ///
+    /// Note that this option will compete with the ProxyCommand
+    /// option - whichever is specified first will prevent later
+    /// instances of the other from taking effect.
+    ///
+    /// Note also that the configuration for the destination host
+    /// (either supplied via the command-line or the configuration
+    /// file) is not generally applied to jump hosts.
+    /// ~/.ssh/config should be used if specific configuration is
+    /// required for jump hosts.
+    ProxyJump,
+
+    ///Specifies that ProxyCommand will pass a connected file
+    // descriptor back to ssh(1) instead of continuing to execute
+    // and pass data.  The default is no.
+    ProxyUseFdpass,
+
+    /// Specifies the signature algorithms that will be used for
+    /// public key authentication as a comma-separated list of
+    /// patterns.  If the specified list begins with a ‘+’
+    /// character, then the algorithms after it will be appended to
+    /// the default instead of replacing it.  If the specified list
+    /// begins with a ‘-’ character, then the specified algorithms
+    /// (including wildcards) will be removed from the default set
+    /// instead of replacing them.  If the specified list begins
+    /// with a ‘^’ character, then the specified algorithms will be
+    /// placed at the head of the default set.  The default for
+    /// this option is:
+    ///
+    ///    ssh-ed25519-cert-v01@openssh.com,
+    ///    ecdsa-sha2-nistp256-cert-v01@openssh.com,
+    ///    ecdsa-sha2-nistp384-cert-v01@openssh.com,
+    ///    ecdsa-sha2-nistp521-cert-v01@openssh.com,
+    ///    sk-ssh-ed25519-cert-v01@openssh.com,
+    ///    sk-ecdsa-sha2-nistp256-cert-v01@openssh.com,
+    ///    rsa-sha2-512-cert-v01@openssh.com,
+    ///    rsa-sha2-256-cert-v01@openssh.com,
+    ///    ssh-rsa-cert-v01@openssh.com,
+    ///    ssh-ed25519,
+    ///    ecdsa-sha2-nistp256,ecdsa-sha2-nistp384,ecdsa-sha2-nistp521,
+    ///    sk-ssh-ed25519@openssh.com,
+    ///    sk-ecdsa-sha2-nistp256@openssh.com,
+    ///    rsa-sha2-512,rsa-sha2-256,ssh-rsa
+    ///
+    /// The list of available signature algorithms may also be
+    /// obtained using "ssh -Q PubkeyAcceptedAlgorithms".
+    PubkeyAcceptedAlgorithms,
+
+    ///  Specifies revoked host public keys.  Keys listed in this
+    ///  file will be refused for host authentication.  Note that if
+    ///  this file does not exist or is not readable, then host
+    ///  authentication will be refused for all hosts.  Keys may be
+    ///  specified as a text file, listing one public key per line,
+    ///  or as an OpenSSH Key Revocation List (KRL) as generated by
+    ///  ssh-keygen(1).  For more information on KRLs, see the KEY
+    ///  REVOCATION LISTS section in ssh-keygen(1).
+    ///
+    RevokedHostKeys,
+
+    /// Specifies a path to a library that will be used when
+    /// loading any FIDO authenticator-hosted keys, overriding the
+    /// default of using the built-in USB HID support.
+    ///
+    /// If the specified value begins with a ‘$’ character, then it
+    /// will be treated as an environment variable containing the
+    /// path to the library.
+    SecurityKeyProvider,
+
+    /// May be used to either request invocation of a subsystem on
+    /// the remote system, or to prevent the execution of a remote
+    /// command at all.  The latter is useful for just forwarding
+    /// ports.  The argument to this keyword must be none (same as
+    /// the -N option), subsystem (same as the -s option) or
+    /// default (shell or command execution).
+    SessionType,
+
+    /// Directly specify one or more environment variables and
+    /// their contents to be sent to the server.  Similarly to
+    /// SendEnv, with the exception of the TERM variable, the
+    /// server must be prepared to accept the environment variable.
+    SetEnv,
+
+    /// Redirects stdin from /dev/null (actually, prevents reading
+    /// from stdin).  Either this or the equivalent -n option must
+    /// be used when ssh is run in the background.  The argument to
+    /// this keyword must be yes (same as the -n option) or no (the
+    /// default).
+    StdinNull,
+
+    /// Sets the octal file creation mode mask (umask) used when
+    /// creating a Unix-domain socket file for local or remote port
+    /// forwarding.  This option is only used for port forwarding
+    /// to a Unix-domain socket file.
+    ///
+    /// The default value is 0177, which creates a Unix-domain
+    /// socket file that is readable and writable only by the
+    /// owner.  Note that not all operating systems honor the file
+    /// mode on Unix-domain socket files.
+    StreamLocalBindMask,
+
+    /// Specifies whether to remove an existing Unix-domain socket
+    /// file for local or remote port forwarding before creating a
+    /// new one.  If the socket file already exists and
+    /// StreamLocalBindUnlink is not enabled, ssh will be unable to
+    /// forward the port to the Unix-domain socket file.  This
+    /// option is only used for port forwarding to a Unix-domain
+    /// socket file.
+    ///
+    /// The argument must be yes or no (the default).
+    StreamLocalBindUnlink,
+
+    /// Gives the facility code that is used when logging messages
+    /// from ssh(1).  The possible values are: DAEMON, USER, AUTH,
+    /// LOCAL0, LOCAL1, LOCAL2, LOCAL3, LOCAL4, LOCAL5, LOCAL6,
+    /// LOCAL7.  The default is USER.
+    SyslogFacility,
+
+    /// Specifies whether ssh(1) should accept notifications of
+    /// additional hostkeys from the server sent after
+    /// authentication has completed and add them to
+    /// UserKnownHostsFile.  The argument must be yes, no or ask.
+    /// This option allows learning alternate hostkeys for a server
+    /// and supports graceful key rotation by allowing a server to
+    /// send replacement public keys before old ones are removed.
+    ///
+    /// Additional hostkeys are only accepted if the key used to
+    /// authenticate the host was already trusted or explicitly
+    /// accepted by the user, the host was authenticated via
+    /// UserKnownHostsFile (i.e. not GlobalKnownHostsFile) and the
+    /// host was authenticated using a plain key and not a
+    /// certificate.
+    ///
+    ///  UpdateHostKeys is enabled by default if the user has not
+    ///  overridden the default UserKnownHostsFile setting and has
+    ///  not enabled VerifyHostKeyDNS, otherwise UpdateHostKeys will
+    ///  be set to no.
+    ///
+    ///  If UpdateHostKeys is set to ask, then the user is asked to
+    ///  confirm the modifications to the known_hosts file.
+    ///  Confirmation is currently incompatible with ControlPersist,
+    ///  and will be disabled if it is enabled.
+    ///
+    ///    Presently, only sshd(8) from OpenSSH 6.8 and greater
+    ///    support the "hostkeys@openssh.com" protocol extension used
+    ///    to inform the client of all the server's hostkeys.
+    ///
+    UpdateHostKeys,
+}
 impl FromStr for SshOptionKey {
     type Err = ConfigError;
 
@@ -841,6 +1383,84 @@ impl FromStr for SshOptionKey {
             Ok(Self::VisualHostKey)
         } else if s.eq_ignore_ascii_case("xauthlocation") {
             Ok(Self::XAuthLocation)
+        } else if s.eq_ignore_ascii_case("controlpersist") {
+            Ok(Self::ControlPersist)
+        } else if s.eq_ignore_ascii_case("remotecommand") {
+            Ok(Self::RemoteCommand)
+        } else if s.eq_ignore_ascii_case("requesttty") {
+            Ok(Self::RequestTTY)
+        } else if s.eq_ignore_ascii_case("match") {
+            Ok(Self::Match)
+        } else if s.eq_ignore_ascii_case("addkeystoagent") {
+            Ok(Self::AddKeysToAgent)
+        } else if s.eq_ignore_ascii_case("bindinterface") {
+            Ok(Self::BindInterface)
+        } else if s.eq_ignore_ascii_case("canonicaldomains") {
+            Ok(Self::CanonicalDomains)
+        } else if s.eq_ignore_ascii_case("canonicalizefallbacklocal") {
+            Ok(Self::CanonicalizeFallbackLocal)
+        } else if s.eq_ignore_ascii_case("canonicalizehostname") {
+            Ok(Self::CanonicalizeHostname)
+        } else if s.eq_ignore_ascii_case("canonicalizemaxdots") {
+            Ok(Self::CanonicalizeMaxDots)
+        } else if s.eq_ignore_ascii_case("canonicalizepermittedcnames") {
+            Ok(Self::CanonicalizePermittedCNAMEs)
+        } else if s.eq_ignore_ascii_case("casignaturealgorithms") {
+            Ok(Self::CASignatureAlgorithms)
+        } else if s.eq_ignore_ascii_case("certificatefile") {
+            Ok(Self::CertificateFile)
+        } else if s.eq_ignore_ascii_case("fingerprinthash") {
+            Ok(Self::FingerprintHash)
+        } else if s.eq_ignore_ascii_case("forkafterauthentication") {
+            Ok(Self::ForkAfterAuthentication)
+        } else if s.eq_ignore_ascii_case("forwardx11timeout") {
+            Ok(Self::ForwardX11Timeout)
+        } else if s.eq_ignore_ascii_case("hostbasedacceptedalgorithms") {
+            Ok(Self::HostbasedAcceptedAlgorithms)
+        } else if s.eq_ignore_ascii_case("hostname") {
+            Ok(Self::Hostname)
+        } else if s.eq_ignore_ascii_case("identityagent") {
+            Ok(Self::IdentityAgent)
+        } else if s.eq_ignore_ascii_case("ignoreunknown") {
+            Ok(Self::IgnoreUnknown)
+        } else if s.eq_ignore_ascii_case("include") {
+            Ok(Self::Include)
+        } else if s.eq_ignore_ascii_case("ipqos") {
+            Ok(Self::IPQoS)
+        } else if s.eq_ignore_ascii_case("kexalgorithms") {
+            Ok(Self::KexAlgorithms)
+        } else if s.eq_ignore_ascii_case("knownhostscommand") {
+            Ok(Self::KnownHostsCommand)
+        } else if s.eq_ignore_ascii_case("logverbose") {
+            Ok(Self::LogVerbose)
+        } else if s.eq_ignore_ascii_case("permitremoteopen") {
+            Ok(Self::PermitRemoteOpen)
+        } else if s.eq_ignore_ascii_case("pkcs11provider") {
+            Ok(Self::PKCS11Provider)
+        } else if s.eq_ignore_ascii_case("proxyjump") {
+            Ok(Self::ProxyJump)
+        } else if s.eq_ignore_ascii_case("proxyusefdpass") {
+            Ok(Self::ProxyUseFdpass)
+        } else if s.eq_ignore_ascii_case("pubkeyacceptedalgorithms") {
+            Ok(Self::PubkeyAcceptedAlgorithms)
+        } else if s.eq_ignore_ascii_case("revokedhostkeys") {
+            Ok(Self::RevokedHostKeys)
+        } else if s.eq_ignore_ascii_case("securitykeyprovider") {
+            Ok(Self::SecurityKeyProvider)
+        } else if s.eq_ignore_ascii_case("sessiontype") {
+            Ok(Self::SessionType)
+        } else if s.eq_ignore_ascii_case("setenv") {
+            Ok(Self::SetEnv)
+        } else if s.eq_ignore_ascii_case("stdinnull") {
+            Ok(Self::StdinNull)
+        } else if s.eq_ignore_ascii_case("streamlocalbindmask") {
+            Ok(Self::StreamLocalBindMask)
+        } else if s.eq_ignore_ascii_case("streamlocalbindunlink") {
+            Ok(Self::StreamLocalBindUnlink)
+        } else if s.eq_ignore_ascii_case("syslogfacility") {
+            Ok(Self::SyslogFacility)
+        } else if s.eq_ignore_ascii_case("updatehostkeys") {
+            Ok(Self::UpdateHostKeys)
         } else {
             Err(ConfigError::SshOptionUnknown { key: s.to_string() })
         }
@@ -920,6 +1540,45 @@ impl fmt::Display for SshOptionKey {
             Self::VerifyHostKeyDNS => write!(f, "VerifyHostKeyDNS"),
             Self::VisualHostKey => write!(f, "VisualHostKey"),
             Self::XAuthLocation => write!(f, "XAuthLocation"),
+            Self::ControlPersist => write!(f, "ControlPersist"),
+            Self::RemoteCommand => write!(f, "RemoteCommand"),
+            Self::RequestTTY => write!(f, "RequestTTY"),
+            Self::Match => write!(f, "Match"),
+            Self::AddKeysToAgent => write!(f, "AddKeysToAgent"),
+            Self::BindInterface => write!(f, "BindInterface"),
+            Self::CanonicalDomains => write!(f, "CanonicalDomains"),
+            Self::CanonicalizeFallbackLocal => write!(f, "CanonicalizeFallbackLocal"),
+            Self::CanonicalizeHostname => write!(f, "CanonicalizeHostname"),
+            Self::CanonicalizeMaxDots => write!(f, "CanonicalizeMaxDots"),
+            Self::CanonicalizePermittedCNAMEs => write!(f, "CanonicalizePermittedCNAMEs"),
+            Self::CASignatureAlgorithms => write!(f, "CASignatureAlgorithms"),
+            Self::CertificateFile => write!(f, "CertificateFile"),
+            Self::FingerprintHash => write!(f, "FingerprintHash"),
+            Self::ForkAfterAuthentication => write!(f, "ForkAfterAuthentication"),
+            Self::ForwardX11Timeout => write!(f, "ForwardX11Timeout"),
+            Self::HostbasedAcceptedAlgorithms => write!(f, "HostbasedAcceptedAlgorithms"),
+            Self::Hostname => write!(f, "Hostname"),
+            Self::IdentityAgent => write!(f, "IdentityAgent"),
+            Self::IgnoreUnknown => write!(f, "IgnoreUnknown"),
+            Self::Include => write!(f, "Include"),
+            Self::IPQoS => write!(f, "IPQoS"),
+            Self::KexAlgorithms => write!(f, "KexAlgorithms"),
+            Self::KnownHostsCommand => write!(f, "KnownHostsCommand"),
+            Self::LogVerbose => write!(f, "LogVerbose"),
+            Self::PermitRemoteOpen => write!(f, "PermitRemoteOpen"),
+            Self::PKCS11Provider => write!(f, "PKCS11Provider"),
+            Self::ProxyJump => write!(f, "ProxyJump"),
+            Self::ProxyUseFdpass => write!(f, "ProxyUseFdpass"),
+            Self::PubkeyAcceptedAlgorithms => write!(f, "PubkeyAcceptedAlgorithms"),
+            Self::RevokedHostKeys => write!(f, "RevokedHostKeys"),
+            Self::SecurityKeyProvider => write!(f, "SecurityKeyProvider"),
+            Self::SessionType => write!(f, "SessionType"),
+            Self::SetEnv => write!(f, "SetEnv"),
+            Self::StdinNull => write!(f, "StdinNull"),
+            Self::StreamLocalBindMask => write!(f, "StreamLocalBindMask"),
+            Self::StreamLocalBindUnlink => write!(f, "StreamLocalBindUnlink"),
+            Self::SyslogFacility => write!(f, "SyslogFacility"),
+            Self::UpdateHostKeys => write!(f, "UpdateHostKeys"),
         }
     }
 }
