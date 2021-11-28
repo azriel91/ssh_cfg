@@ -619,6 +619,28 @@ pub enum SshOptionKey {
     /// of: `bsdauth`, `pam`, and `skey`.
     KbdInteractiveDevices,
 
+    /// Specifies the key types that will be accepted for public key au-
+    /// thentication as a list of comma-separated patterns.  Alternately
+    /// if the specified value begins with a `+' character, then the
+    /// specified key types will be appended to the default set instead
+    /// of replacing them. If the specified value begins with a `-'
+    /// character, then the specified key types (including wildcards)
+    /// will be removed from the default set instead of replacing them.
+    /// The default for this option is:
+    ///
+    /// ecdsa-sha2-nistp256-cert-v01@openssh.com,
+    /// ecdsa-sha2-nistp384-cert-v01@openssh.com,
+    /// ecdsa-sha2-nistp521-cert-v01@openssh.com,
+    /// ssh-ed25519-cert-v01@openssh.com,
+    /// rsa-sha2-512-cert-v01@openssh.com,rsa-sha2-256-cert-v01@openssh.com,
+    /// ssh-rsa-cert-v01@openssh.com,
+    /// ecdsa-sha2-nistp256,ecdsa-sha2-nistp384,ecdsa-sha2-nistp521,
+    /// ssh-ed25519,rsa-sha2-512,rsa-sha2-256,ssh-rsa
+    ///
+    ///  The list of available key types may also be obtained using "ssh
+    ///  -Q key".
+    PubkeyAcceptedKeyTypes,
+
     /// Specifies the available KEX (Key Exchange) algorithms.
     ///
     /// Multiple algorithms must be comma-separated. If the specified list
@@ -1463,6 +1485,8 @@ impl FromStr for SshOptionKey {
             Ok(Self::VisualHostKey)
         } else if s.eq_ignore_ascii_case("xauthlocation") {
             Ok(Self::XAuthLocation)
+        } else if s.eq_ignore_ascii_case("pubkeyacceptedkeytypes") {
+            Ok(Self::PubkeyAcceptedKeyTypes)
         } else {
             Err(ConfigError::SshOptionUnknown { key: s.to_string() })
         }
@@ -1581,6 +1605,7 @@ impl fmt::Display for SshOptionKey {
             Self::VerifyHostKeyDNS => write!(f, "VerifyHostKeyDNS"),
             Self::VisualHostKey => write!(f, "VisualHostKey"),
             Self::XAuthLocation => write!(f, "XAuthLocation"),
+            Self::PubkeyAcceptedKeyTypes => write!(f, "PubkeyAcceptedKeyTypes"),
         }
     }
 }
