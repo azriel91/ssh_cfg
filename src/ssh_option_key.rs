@@ -7,6 +7,669 @@ use crate::ConfigError;
 /// See <https://linux.die.net/man/5/ssh_config>
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum SshOptionKey {
+    ///     Specifies what environment variables sent by the client will be
+    ///     copied into the session's environ(7).  See SendEnv and SetEnv in
+    ///     ssh_config(5) for how to configure the client.  The TERM environ-
+    ///     ment variable is always accepted whenever the client requests a
+    ///     pseudo-terminal as it is required by the protocol.  Variables are
+    ///     specified by name, which may contain the wildcard characters `*'
+    ///     and `?'.  Multiple environment variables may be separated by
+    ///     whitespace or spread across multiple AcceptEnv directives.  Be
+    ///     warned that some environment variables could be used to bypass
+    ///     restricted user environments.  For this reason, care should be
+    ///     taken in the use of this directive.  The default is not to accept
+    ///     any environment variables.
+    AcceptEnv,
+
+    ///  Specifies whether ssh-agent(1) forwarding is permitted.  The de-
+    ///  fault is yes.  Note that disabling agent forwarding does not im-
+    ///  prove security unless users are also denied shell access, as they
+    ///  can always install their own forwarders.
+    AllowAgentForwarding,
+
+    ///    This keyword can be followed by a list of group name patterns,
+    ///    separated by spaces.  If specified, login is allowed only for
+    ///    users whose primary group or supplementary group list matches one
+    ///    of the patterns.  Only group names are valid; a numerical group
+    ///    ID is not recognized.  By default, login is allowed for all
+    ///    groups.  The allow/deny directives are processed in the following
+    ///    order: DenyUsers, AllowUsers, DenyGroups, and finally
+    ///    AllowGroups.
+    ///    See PATTERNS in ssh_config(5) for more information on patterns.
+    AllowGroups,
+
+    /// Specifies whether StreamLocal (Unix-domain socket) forwarding is
+    /// permitted.  The available options are yes (the default) or all to
+    /// allow StreamLocal forwarding, no to prevent all StreamLocal for-
+    /// warding, local to allow local (from the perspective of ssh(1))
+    /// forwarding only or remote to allow remote forwarding only.  Note
+    /// that disabling StreamLocal forwarding does not improve security
+    /// unless users are also denied shell access, as they can always in-
+    /// stall their own forwarders.
+    AllowStreamLocalForwarding,
+
+    /// Specifies whether TCP forwarding is permitted.  The available op-
+    /// tions are yes (the default) or all to allow TCP forwarding, no to
+    /// prevent all TCP forwarding, local to allow local (from the per-
+    /// spective of ssh(1)) forwarding only or remote to allow remote
+    /// forwarding only.  Note that disabling TCP forwarding does not im-
+    /// prove security unless users are also denied shell access, as they
+    /// can always install their own forwarders.
+    AllowTcpForwarding,
+
+    ///      This keyword can be followed by a list of user name patterns,
+    ///      separated by spaces.  If specified, login is allowed only for
+    ///      user names that match one of the patterns.  Only user names are
+    ///      valid; a numerical user ID is not recognized.  By default, login
+    ///      is allowed for all users. If the pattern takes the form
+    ///      USER@HOST then USER and HOST are separately checked, restricting
+    ///      logins to particular users from particular hosts. HOST criteria
+    ///      may additionally contain addresses to match in CIDR ad-
+    ///      dress/masklen format.  The allow/deny directives are processed in
+    ///      the following order: DenyUsers, AllowUsers, DenyGroups, and fi-
+    ///      nally AllowGroups.
+
+    ///      See PATTERNS in ssh_config(5) for more information on patterns.
+    AllowUsers,
+
+    ///      Specifies the authentication methods that must be successfully
+    ///      completed for a user to be granted access.  This option must be
+    ///      followed by one or more lists of comma-separated authentication
+    ///      method names, or by the single string any to indicate the default
+    ///      behaviour of accepting any single authentication method.  If the
+    ///      default is overridden, then successful authentication requires
+    ///      completion of every method in at least one of these lists.
+
+    ///      For example, "publickey,password publickey,keyboard-interactive"
+    ///      would require the user to complete public key authentication,
+    ///      followed by either password or keyboard interactive authentica-
+    ///      tion.  Only methods that are next in one or more lists are of-
+    ///      fered at each stage, so for this example it would not be possible
+    ///      to attempt password or keyboard-interactive authentication before
+    ///      public key.
+
+    ///      For keyboard interactive authentication it is also possible to
+    ///      restrict authentication to a specific device by appending a colon
+    ///      followed by the device identifier bsdauth or pam. depending on
+    ///      the server configuration. For example,
+    ///      "keyboard-interactive:bsdauth" would restrict keyboard interac-
+    ///      tive authentication to the bsdauth device.
+
+    ///      If the publickey method is listed more than once, sshd(8) veri-
+    ///      fies that keys that have been used successfully are not reused
+    ///      for subsequent authentications.  For example,
+    ///      "publickey,publickey" requires successful authentication using
+    ///      two different public keys.
+
+    ///      Note that each authentication method listed should also be ex-
+    ///      plicitly enabled in the configuration.
+
+    ///      The available authentication methods are: "gssapi-with-mic",
+    ///      "hostbased", "keyboard-interactive", "none" (used for access to
+    ///      password-less accounts when PermitEmptyPasswords is enabled),
+    ///      "password" and "publickey".
+    AuthenticationMethods,
+
+    ///      Specifies a program to be used to look up the user's public keys.
+    ///      The program must be owned by root, not writable by group or oth-
+    ///      ers and specified by an absolute path.  Arguments to
+    ///      AuthorizedKeysCommand accept the tokens described in the TOKENS
+    ///      section.  If no arguments are specified then the username of the
+    ///      target user is used.
+
+    ///      The program should produce on standard output zero or more lines
+    ///      of authorized_keys output (see AUTHORIZED_KEYS in sshd(8)).  If a
+    ///      key supplied by AuthorizedKeysCommand does not successfully au-
+    ///      thenticate and authorize the user then public key authentication
+    ///      continues using the usual AuthorizedKeysFile files.  By default,
+    ///      no AuthorizedKeysCommand is run.
+    AuthorizedKeysCommand,
+
+    ///      Specifies the user under whose account the AuthorizedKeysCommand
+    ///      is run.  It is recommended to use a dedicated user that has no
+    ///      other role on the host than running authorized keys commands.  If
+    ///      AuthorizedKeysCommand is specified but AuthorizedKeysCommandUser
+    ///      is not, then sshd(8) will refuse to start.
+    AuthorizedKeysCommandUser,
+
+    ///      Specifies the file that contains the public keys used for user
+    ///      authentication.  The format is described in the AUTHORIZED_KEYS
+    ///      FILE FORMAT section of sshd(8).  Arguments to AuthorizedKeysFile
+    ///      accept the tokens described in the TOKENS section.  After expan-
+    ///      sion, AuthorizedKeysFile is taken to be an absolute path or one
+    ///      relative to the user's home directory.  Multiple files may be
+    ///      listed, separated by whitespace.  Alternately this option may be
+    ///      set to none to skip checking for user keys in files.  The default
+    ///      is ".ssh/authorized_keys .ssh/authorized_keys2".
+    AuthorizedKeysFile,
+
+    ///      Specifies a program to be used to generate the list of allowed
+    ///      certificate principals as per AuthorizedPrincipalsFile.  The pro-
+    ///      gram must be owned by root, not writable by group or others and
+    ///      specified by an absolute path.  Arguments to
+    ///      AuthorizedPrincipalsCommand accept the tokens described in the
+    ///      TOKENS section.  If no arguments are specified then the username
+    ///      of the target user is used.
+
+    ///      The program should produce on standard output zero or more lines
+    ///      of AuthorizedPrincipalsFile output.  If either
+    ///      AuthorizedPrincipalsCommand or AuthorizedPrincipalsFile is speci-
+    ///      fied, then certificates offered by the client for authentication
+    ///      must contain a principal that is listed.  By default, no
+    ///      AuthorizedPrincipalsCommand is run.
+    AuthorizedPrincipalsCommand,
+
+    ///      Specifies the user under whose account the
+    ///      AuthorizedPrincipalsCommand is run.  It is recommended to use a
+    ///      dedicated user that has no other role on the host than running
+    ///      authorized principals commands.  If AuthorizedPrincipalsCommand
+    ///      is specified but AuthorizedPrincipalsCommandUser is not, then
+    ///      sshd(8) will refuse to start.
+    AuthorizedPrincipalsCommandUser,
+
+    ///      Specifies a file that lists principal names that are accepted for
+    ///      certificate authentication.  When using certificates signed by a
+    ///      key listed in TrustedUserCAKeys, this file lists names, one of
+    ///      which must appear in the certificate for it to be accepted for
+    ///      authentication.  Names are listed one per line preceded by key
+    ///      options (as described in AUTHORIZED_KEYS FILE FORMAT in sshd(8)).
+    ///      Empty lines and comments starting with `#' are ignored.
+
+    ///      Arguments to AuthorizedPrincipalsFile accept the tokens described
+    ///      in the TOKENS section.  After expansion, AuthorizedPrincipalsFile
+    ///      is taken to be an absolute path or one relative to the user's
+    ///      home directory.  The default is none, i.e. not to use a princi-
+    ///      pals file - in this case, the username of the user must appear in
+    ///      a certificate's principals list for it to be accepted.
+
+    ///      Note that AuthorizedPrincipalsFile is only used when authentica-
+    ///      tion proceeds using a CA listed in TrustedUserCAKeys and is not
+    ///      consulted for certification authorities trusted via
+    ///      ~/.ssh/authorized_keys, though the principals= key option offers
+    ///      a similar facility (see sshd(8) for details).
+    AuthorizedPrincipalsFile,
+
+    /// The contents of the specified file are sent to the remote user
+    ///      before authentication is allowed. If the argument is none then
+    ///      no banner is displayed.  By default, no banner is displayed.
+    Banner,
+
+    ///      Specifies the pathname of a directory to chroot(2) to after au-
+    ///      thentication.  At session startup sshd(8) checks that all compo-
+    ///      nents of the pathname are root-owned directories which are not
+    ///      writable by any other user or group.  After the chroot, sshd(8)
+    ///      changes the working directory to the user's home directory.  Ar-
+    ///      guments to ChrootDirectory accept the tokens described in the
+    ///      TOKENS section.
+
+    ///      The ChrootDirectory must contain the necessary files and directo-
+    ///      ries to support the user's session.  For an interactive session
+    ///      this requires at least a shell, typically sh(1), and basic /dev
+    ///      nodes such as null(4), zero(4), stdin(4), stdout(4), stderr(4),
+    ///      and tty(4) devices.  For file transfer sessions using SFTP no ad-
+    ///      ditional configuration of the environment is necessary if the in-
+    ///      process sftp-server is used, though sessions which use logging
+    ///      may require /dev/log inside the chroot directory on some operat-
+    ///      ing systems (see sftp-server(8) for details).
+
+    ///      For safety, it is very important that the directory hierarchy be
+    ///      prevented from modification by other processes on the system (es-
+    ///      pecially those outside the jail). Misconfiguration can lead to
+    ///      unsafe environments which sshd(8) cannot detect.
+
+    ///      The default is none, indicating not to chroot(2).
+    ChrootDirectory,
+
+    ///      Sets the number of client alive messages which may be sent with-
+    ///      out sshd(8) receiving any messages back from the client.  If this
+    ///      threshold is reached while client alive messages are being sent,
+    ///      sshd will disconnect the client, terminating the session. It is
+    ///      important to note that the use of client alive messages is very
+    ///      different from TCPKeepAlive.  The client alive messages are sent
+    ///      through the encrypted channel and therefore will not be spoofa-
+    ///      ble.  The TCP keepalive option enabled by TCPKeepAlive is spoofa-
+    ///      ble.  The client alive mechanism is valuable when the client or
+    ///      server depend on knowing when a connection has become inactive.
+
+    ///      The default value is 3.  If ClientAliveInterval is set to 15, and
+    ///      ClientAliveCountMax is left at the default, unresponsive SSH
+    ///      clients will be disconnected after approximately 45 seconds.
+    ClientAliveCountMax,
+
+    ///      Sets a timeout interval in seconds after which if no data has
+    ///      been received from the client, sshd(8) will send a message
+    ///      through the encrypted channel to request a response from the
+    ///      client.  The default is 0, indicating that these messages will
+    ///      not be sent to the client.
+    ClientAliveInterval,
+
+    ///      This keyword can be followed by a list of group name patterns,
+    ///      separated by spaces.  Login is disallowed for users whose primary
+    ///      group or supplementary group list matches one of the patterns.
+    ///      Only group names are valid; a numerical group ID is not recog-
+    ///      nized.  By default, login is allowed for all groups.  The al-
+    ///      low/deny directives are processed in the following order:
+    ///      DenyUsers, AllowUsers, DenyGroups, and finally AllowGroups.
+
+    ///      See PATTERNS in ssh_config(5) for more information on patterns.
+    DenyGroups,
+
+    ///      This keyword can be followed by a list of user name patterns,
+    ///      separated by spaces.  Login is disallowed for user names that
+    ///      match one of the patterns.  Only user names are valid; a numeri-
+    ///      cal user ID is not recognized.  By default, login is allowed for
+    ///      all users.  If the pattern takes the form USER@HOST then USER and
+    ///      HOST are separately checked, restricting logins to particular
+    ///      users from particular hosts.  HOST criteria may additionally con-
+    ///      tain addresses to match in CIDR address/masklen format.  The al-
+    ///      low/deny directives are processed in the following order:
+    ///      DenyUsers, AllowUsers, DenyGroups, and finally AllowGroups.
+
+    ///      See PATTERNS in ssh_config(5) for more information on patterns.
+    DenyUsers,
+
+    ///      Disables all forwarding features, including X11, ssh-agent(1),
+    ///      TCP and StreamLocal.  This option overrides all other forwarding-
+    ///      related options and may simplify restricted configurations.
+    DisableForwarding,
+
+    ///      Writes a temporary file containing a list of authentication meth-
+    ///      ods and public credentials (e.g. keys) used to authenticate the
+    ///      user.  The location of the file is exposed to the user session
+    ///      through the SSH_USER_AUTH environment variable.  The default is
+    ///      no.
+    ExposeAuthInfo,
+
+    ///      Forces the execution of the command specified by ForceCommand,
+    ///      ignoring any command supplied by the client and ~/.ssh/rc if
+    ///      present.  The command is invoked by using the user's login shell
+    ///      with the -c option.  This applies to shell, command, or subsystem
+    ///      execution.  It is most useful inside a Match block.  The command
+    ///      originally supplied by the client is available in the
+    ///      SSH_ORIGINAL_COMMAND environment variable.  Specifying a command
+    ///      of internal-sftp will force the use of an in-process SFTP server
+    ///      that requires no support files when used with ChrootDirectory.
+    ///      The default is none.
+    ForceCommand,
+
+    ///      Specifies whether to automatically destroy the user's credentials
+    ///      cache on logout.  The default is yes.
+    GSSAPICleanupCredentials,
+
+    ///      Determines whether to be strict about the identity of the GSSAPI
+    ///      acceptor a client authenticates against.  If set to yes then the
+    ///      client must authenticate against the host service on the current
+    ///      hostname. If set to no then the client may authenticate against
+    ///      any service key stored in the machine's default store.  This fa-
+    ///      cility is provided to assist with operation on multi homed ma-
+    ///      chines.  The default is yes.
+    GSSAPIStrictAcceptorCheck,
+
+    ///      Specifies the key types that will be accepted for hostbased au-
+    ///      thentication as a list of comma-separated patterns.  Alternately
+    ///      if the specified value begins with a `+' character, then the
+    ///      specified key types will be appended to the default set instead
+    ///      of replacing them.  If the specified value begins with a `-'
+    ///      character, then the specified key types (including wildcards)
+    ///      will be removed from the default set instead of replacing them.
+    ///      The default for this option is:
+
+    /// ecdsa-sha2-nistp256-cert-v01@openssh.com,
+    /// ecdsa-sha2-nistp384-cert-v01@openssh.com,
+    /// ecdsa-sha2-nistp521-cert-v01@openssh.com,
+    /// ssh-ed25519-cert-v01@openssh.com,
+    /// rsa-sha2-512-cert-v01@openssh.com,rsa-sha2-256-cert-v01@openssh.com,
+    /// ssh-rsa-cert-v01@openssh.com,
+    /// ecdsa-sha2-nistp256,ecdsa-sha2-nistp384,ecdsa-sha2-nistp521,
+    /// ssh-ed25519,rsa-sha2-512,rsa-sha2-256,ssh-rsa
+
+    ///      The list of available key types may also be obtained using "ssh
+    ///      -Q key".
+    HostbasedAcceptedKeyTypes,
+
+    ///      Specifies whether or not the server will attempt to perform a re-
+    ///      verse name lookup when matching the name in the ~/.shosts,
+    ///      ~/.rhosts, and /etc/hosts.equiv files during
+    ///      HostbasedAuthentication.  A setting of yes means that sshd(8)
+    ///      uses the name supplied by the client rather than attempting to
+    ///      resolve the name from the TCP connection itself.  The default is
+    ///      no.
+    HostbasedUsesNameFromPacketOnly,
+
+    ///      Specifies a file containing a public host certificate.  The cer-
+    ///      tificate's public key must match a private host key already spec-
+    ///      ified by HostKey. The default behaviour of sshd(8) is not to
+    ///      load any certificates.
+    HostCertificate,
+
+    ///      Specifies a file containing a private host key used by SSH.  The
+    ///      defaults are /etc/ssh/ssh_host_ecdsa_key,
+    ///      /etc/ssh/ssh_host_ed25519_key and /etc/ssh/ssh_host_rsa_key.
+
+    ///      Note that sshd(8) will refuse to use a file if it is group/world-
+    ///      accessible and that the HostKeyAlgorithms option restricts which
+    ///      of the keys are actually used by sshd(8).
+
+    ///      It is possible to have multiple host key files.  It is also pos-
+    ///      sible to specify public host key files instead.  In this case op-
+    ///      erations on the private key will be delegated to an ssh-agent(1).
+    HostKey,
+
+    ///      Identifies the UNIX-domain socket used to communicate with an
+    ///      agent that has access to the private host keys.  If the string
+    ///      "SSH_AUTH_SOCK" is specified, the location of the socket will be
+    ///      read from the SSH_AUTH_SOCK environment variable.
+    HostKeyAgent,
+
+    ///      Specifies that .rhosts and .shosts files will not be used in
+    ///      HostbasedAuthentication.
+
+    ///      /etc/hosts.equiv and /etc/ssh/shosts.equiv are still used.  The
+    ///      default is yes.
+    IgnoreRhosts,
+
+    ///      Specifies whether sshd(8) should ignore the user's
+    ///      ~/.ssh/known_hosts during HostbasedAuthentication and use only
+    ///      the system-wide known hosts file /etc/ssh/known_hosts.  The de-
+    ///      fault is no.
+    IgnoreUserKnownHosts,
+
+    ///      Specifies whether the password provided by the user for
+    ///      PasswordAuthentication will be validated through the Kerberos
+    ///      KDC.  To use this option, the server needs a Kerberos servtab
+    ///      which allows the verification of the KDC's identity.  The default
+    ///      is no.
+    KerberosAuthentication,
+
+    ///      If AFS is active and the user has a Kerberos 5 TGT, attempt to
+    ///      acquire an AFS token before accessing the user's home directory.
+    ///      The default is no.
+    KerberosGetAFSToken,
+
+    ///      If password authentication through Kerberos fails then the pass-
+    ///      word will be validated via any additional local mechanism such as
+    ///      /etc/passwd.  The default is yes.
+    KerberosOrLocalPasswd,
+
+    ///      Specifies whether to automatically destroy the user's ticket
+    ///      cache file on logout.  The default is yes.
+    KerberosTicketCleanup,
+
+    ///      Specifies the local addresses sshd(8) should listen on.  The fol-
+    ///      lowing forms may be used:
+
+    ///  ListenAddress hostname|address [rdomain domain]
+    ///  ListenAddress hostname:port [rdomain domain]
+    ///  ListenAddress IPv4_address:port [rdomain domain]
+    ///  ListenAddress [hostname|address]:port [rdomain domain]
+
+    ///      The optional rdomain qualifier requests sshd(8) listen in an ex-
+    ///      plicit routing domain.  If port is not specified, sshd will lis-
+    ///      ten on the address and all Port options specified.  The default
+    ///      is to listen on all local addresses on the current default rout-
+    ///      ing domain.  Multiple ListenAddress options are permitted.  For
+    ///      more information on routing domains, see rdomain(4).
+    ListenAddress,
+
+    ///      The server disconnects after this time if the user has not suc-
+    ///      cessfully logged in.  If the value is 0, there is no time limit.
+    ///      The default is 120 seconds.
+    LoginGraceTime,
+
+    ///      Specifies the maximum number of authentication attempts permitted
+    ///      per connection.  Once the number of failures reaches half this
+    ///      value, additional failures are logged.  The default is 6.
+    MaxAuthTries,
+
+    ///      Specifies the maximum number of open shell, login or subsystem
+    ///      (e.g. sftp) sessions permitted per network connection.  Multiple
+    ///      sessions may be established by clients that support connection
+    ///      multiplexing.  Setting MaxSessions to 1 will effectively disable
+    ///      session multiplexing, whereas setting it to 0 will prevent all
+    ///      shell, login and subsystem sessions while still permitting for-
+    ///      warding.  The default is 10.
+    MaxSessions,
+
+    ///      Specifies the maximum number of concurrent unauthenticated con-
+    ///      nections to the SSH daemon.  Additional connections will be
+    ///      dropped until authentication succeeds or the LoginGraceTime ex-
+    ///      pires for a connection.  The default is 10:30:100.
+
+    ///      Alternatively, random early drop can be enabled by specifying the
+    ///      three colon separated values start:rate:full (e.g. "10:30:60").
+    ///      sshd(8) will refuse connection attempts with a probability of
+    ///      rate/100 (30%) if there are currently start (10) unauthenticated
+    ///      connections.  The probability increases linearly and all connec-
+    ///      tion attempts are refused if the number of unauthenticated con-
+    ///      nections reaches full (60).
+    MaxStartups,
+
+    ///      When password authentication is allowed, it specifies whether the
+    ///      server allows login to accounts with empty password strings.  The
+    ///      default is no.
+    PermitEmptyPasswords,
+
+    ///      Specifies the addresses/ports on which a remote TCP port forward-
+    ///      ing may listen.  The listen specification must be one of the fol-
+    ///      lowing forms:
+
+    ///    PermitListen port
+    ///    PermitListen host:port
+
+    ///      Multiple permissions may be specified by separating them with
+    ///      whitespace.  An argument of any can be used to remove all re-
+    ///      strictions and permit any listen requests.  An argument of none
+    ///      can be used to prohibit all listen requests.  The host name may
+    ///      contain wildcards as described in the PATTERNS section in
+    ///      ssh_config(5).  The wildcard `*' can also be used in place of a
+    ///      port number to allow all ports.  By default all port forwarding
+    ///      listen requests are permitted.  Note that the GatewayPorts option
+    ///      may further restrict which addresses may be listened on.  Note
+    ///      also that ssh(1) will request a listen host of "localhost" if no
+    ///      listen host was specifically requested, and this this name is
+    ///      treated differently to explicit localhost addresses of
+    ///      "127.0.0.1" and "::1".
+    PermitListen,
+
+    ///      Specifies the destinations to which TCP port forwarding is per-
+    ///      mitted.  The forwarding specification must be one of the follow-
+    ///      ing forms:
+
+    ///   PermitOpen host:port
+    ///   PermitOpen IPv4_addr:port
+    ///   PermitOpen [IPv6_addr]:port
+
+    ///      Multiple forwards may be specified by separating them with white-
+    ///      space.  An argument of any can be used to remove all restrictions
+    ///      and permit any forwarding requests.  An argument of none can be
+    ///      used to prohibit all forwarding requests. The wildcard `*' can
+    ///      be used for host or port to allow all hosts or ports, respec-
+    ///      tively.  By default all port forwarding requests are permitted.
+    PermitOpen,
+
+    ///      Specifies whether root can log in using ssh(1).  The argument
+    ///      must be yes, prohibit-password, forced-commands-only, or no.  The
+    ///      default is no.  Note that if ChallengeResponseAuthentication and
+    ///      UsePAM are both yes, this setting may be overridden by the PAM
+    ///      policy.
+
+    ///      If this option is set to prohibit-password (or its deprecated
+    ///      alias, without-password), password and keyboard-interactive au-
+    ///      thentication are disabled for root.
+
+    ///      If this option is set to forced-commands-only, root login with
+    ///      public key authentication will be allowed, but only if the
+    ///      command option has been specified (which may be useful for taking
+    ///      remote backups even if root login is normally not allowed).  All
+    ///      other authentication methods are disabled for root.
+
+    ///      If this option is set to no, root is not allowed to log in.
+    PermitRootLogin,
+
+    ///      Specifies whether pty(4) allocation is permitted. The default is
+    ///      yes.
+    PermitTTY,
+
+    ///      Specifies whether tun(4) device forwarding is allowed.  The argu-
+    ///      ment must be yes, point-to-point (layer 3), ethernet (layer 2),
+    ///      or no.  Specifying yes permits both point-to-point and ethernet.
+    ///      The default is no.
+
+    ///      Independent of this setting, the permissions of the selected
+    ///      tun(4) device must allow access to the user.
+    PermitTunnel,
+
+    ///      Specifies whether ~/.ssh/environment and environment= options in
+    ///      ~/.ssh/authorized_keys are processed by sshd(8).  Valid options
+    ///      are yes, no or a pattern-list specifying which environment vari-
+    ///      able names to accept (for example "LANG,LC_*").  The default is
+    ///      no.  Enabling environment processing may enable users to bypass
+    ///      access restrictions in some configurations using mechanisms such
+    ///      as LD_PRELOAD.
+    PermitUserEnvironment,
+
+    ///      Specifies whether any ~/.ssh/rc file is executed. The default is
+    ///      yes.
+    PermitUserRC,
+
+    ///      Specifies the file that contains the process ID of the SSH dae-
+    ///      mon, or none to not write one.  The default is /var/run/sshd.pid.
+    PidFile,
+
+    ///      Specifies whether sshd(8) should print the date and time of the
+    ///      last user login when a user logs in interactively.  The default
+    ///      is yes.
+    PrintLastLog,
+
+    ///      Specifies whether sshd(8) should print /etc/motd when a user logs
+    ///      in interactively. (On some systems it is also printed by the
+    ///      shell, /etc/profile, or equivalent.)  The default is yes.
+    PrintMotd,
+
+    ///      Specifies revoked public keys file, or none to not use one.  Keys
+    ///      listed in this file will be refused for public key authentica-
+    ///      tion.  Note that if this file is not readable, then public key
+    ///      authentication will be refused for all users.  Keys may be speci-
+    ///      fied as a text file, listing one public key per line, or as an
+    ///      OpenSSH Key Revocation List (KRL) as generated by ssh-keygen(1).
+    ///      For more information on KRLs, see the KEY REVOCATION LISTS sec-
+    ///      tion in ssh-keygen(1).
+    RevokedKeys,
+
+    ///      Specifies an explicit routing domain that is applied after au-
+    ///      thentication has completed.  The user session, as well and any
+    ///      forwarded or listening IP sockets, will be bound to this
+    ///      rdomain(4).  If the routing domain is set to %D, then the domain
+    ///      in which the incoming connection was received will be applied.
+    RDomain,
+
+    ///      Specifies whether sshd(8) should check file modes and ownership
+    ///      of the user's files and home directory before accepting login.
+    ///      This is normally desirable because novices sometimes accidentally
+    ///      leave their directory or files world-writable.  The default is
+    ///      yes.  Note that this does not apply to ChrootDirectory, whose
+    ///      permissions and ownership are checked unconditionally.
+    StrictModes,
+
+    ///      Configures an external subsystem (e.g. file transfer daemon).
+    ///      Arguments should be a subsystem name and a command (with optional
+    ///      arguments) to execute upon subsystem request.
+
+    ///      The command sftp-server implements the SFTP file transfer subsys-
+    ///      tem.
+
+    ///      Alternately the name internal-sftp implements an in-process SFTP
+    ///      server.  This may simplify configurations using ChrootDirectory
+    ///      to force a different filesystem root on clients.
+
+    ///      By default no subsystems are defined.
+    Subsystem,
+
+    ///      Specifies a file containing public keys of certificate authori-
+    ///      ties that are trusted to sign user certificates for authentica-
+    ///      tion, or none to not use one.  Keys are listed one per line;
+    ///      empty lines and comments starting with `#' are allowed.  If a
+    ///      certificate is presented for authentication and has its signing
+    ///      CA key listed in this file, then it may be used for authentica-
+    ///      tion for any user listed in the certificate's principals list.
+    ///      Note that certificates that lack a list of principals will not be
+    ///      permitted for authentication using TrustedUserCAKeys.  For more
+    ///      details on certificates, see the CERTIFICATES section in
+    ///      ssh-keygen(1).
+    TrustedUserCAKeys,
+
+    ///      Specifies whether sshd(8) attempts to send authentication success
+    ///      and failure messages to the blacklistd(8) daemon. The default is
+    ///      no.  For forward compatibility with an upcoming blacklistd re-
+    ///      name, the UseBlocklist alias can be used instead.
+    UseBlacklist,
+
+    ///  Specifies whether sshd(8) should look up the remote host name,
+    ///      and to check that the resolved host name for the remote IP ad-
+    ///      dress maps back to the very same IP address.
+
+    ///      If this option is set to no, then only addresses and not host
+    ///      names may be used in ~/.ssh/authorized_keys from and sshd_config
+    ///      Match Host directives.  The default is "yes".
+    UseDNS,
+
+    /// Enables the Pluggable Authentication Module interface.  If set to
+    ///      yes this will enable PAM authentication using
+    ///      ChallengeResponseAuthentication and PasswordAuthentication in ad-
+    ///      dition to PAM account and session module processing for all au-
+    ///      thentication types.
+
+    ///      Because PAM challenge-response authentication usually serves an
+    ///      equivalent role to password authentication, you should disable
+    ///      either PasswordAuthentication or ChallengeResponseAuthentication.
+
+    ///      If UsePAM is enabled, you will not be able to run sshd(8) as a
+    ///      non-root user.  The default is yes.
+    UsePAM,
+
+    ///      Optionally specifies additional text to append to the SSH proto-
+    ///      col banner sent by the server upon connection.  The default is
+    ///      "FreeBSD-20200214".  The value none may be used to disable this.
+    VersionAddendum,
+
+    ///      Specifies the first display number available for sshd(8)'s X11
+    ///      forwarding.  This prevents sshd from interfering with real X11
+    ///      servers.  The default is 10.
+    X11DisplayOffset,
+
+    ///      Specifies whether X11 forwarding is permitted.  The argument must
+    ///      be yes or no.  The default is yes.
+
+    ///      When X11 forwarding is enabled, there may be additional exposure
+    ///      to the server and to client displays if the sshd(8) proxy display
+    ///      is configured to listen on the wildcard address (see
+    ///      X11UseLocalhost), though this is not the default. Additionally,
+    ///      the authentication spoofing and authentication data verification
+    ///      and substitution occur on the client side.  The security risk of
+    ///      using X11 forwarding is that the client's X11 display server may
+    ///      be exposed to attack when the SSH client requests forwarding (see
+    ///      the warnings for ForwardX11 in ssh_config(5)).  A system adminis-
+    ///      trator may have a stance in which they want to protect clients
+    ///      that may expose themselves to attack by unwittingly requesting
+    ///      X11 forwarding, which can warrant a no setting.
+
+    ///      Note that disabling X11 forwarding does not prevent users from
+    ///      forwarding X11 traffic, as users can always install their own
+    ///      forwarders.
+    X11Forwarding,
+
+    ///      Specifies whether sshd(8) should bind the X11 forwarding server
+    ///      to the loopback address or to the wildcard address.  By default,
+    ///      sshd binds the forwarding server to the loopback address and sets
+    ///      the hostname part of the DISPLAY environment variable to
+    ///      localhost.  This prevents remote hosts from connecting to the
+    ///      proxy display.  However, some older X11 clients may not function
+    ///      with this configuration.  X11UseLocalhost may be set to no to
+    ///      specify that the forwarding server should be bound to the wild-
+    ///      card address.  The argument must be yes or no.  The default is
+    ///      yes.
+    X11UseLocalhost,
+
     /// Restricts the following declarations (up to the next `Host` keyword) to
     /// be only for those hosts that match one of the patterns given after
     /// the keyword.
@@ -1487,6 +2150,132 @@ impl FromStr for SshOptionKey {
             Ok(Self::XAuthLocation)
         } else if s.eq_ignore_ascii_case("pubkeyacceptedkeytypes") {
             Ok(Self::PubkeyAcceptedKeyTypes)
+        } else if s.eq_ignore_ascii_case("acceptenv") {
+            Ok(Self::AcceptEnv)
+        } else if s.eq_ignore_ascii_case("allowagentforwarding") {
+            Ok(Self::AllowAgentForwarding)
+        } else if s.eq_ignore_ascii_case("allowgroups") {
+            Ok(Self::AllowGroups)
+        } else if s.eq_ignore_ascii_case("allowstreamlocalforwarding") {
+            Ok(Self::AllowStreamLocalForwarding)
+        } else if s.eq_ignore_ascii_case("allowtcpforwarding") {
+            Ok(Self::AllowTcpForwarding)
+        } else if s.eq_ignore_ascii_case("allowusers") {
+            Ok(Self::AllowUsers)
+        } else if s.eq_ignore_ascii_case("authenticationmethods") {
+            Ok(Self::AuthenticationMethods)
+        } else if s.eq_ignore_ascii_case("authorizedkeyscommand") {
+            Ok(Self::AuthorizedKeysCommand)
+        } else if s.eq_ignore_ascii_case("authorizedkeyscommanduser") {
+            Ok(Self::AuthorizedKeysCommandUser)
+        } else if s.eq_ignore_ascii_case("authorizedkeysfile") {
+            Ok(Self::AuthorizedKeysFile)
+        } else if s.eq_ignore_ascii_case("authorizedprincipalscommand") {
+            Ok(Self::AuthorizedPrincipalsCommand)
+        } else if s.eq_ignore_ascii_case("authorizedprincipalscommanduser") {
+            Ok(Self::AuthorizedPrincipalsCommandUser)
+        } else if s.eq_ignore_ascii_case("authorizedprincipalsfile") {
+            Ok(Self::AuthorizedPrincipalsFile)
+        } else if s.eq_ignore_ascii_case("banner") {
+            Ok(Self::Banner)
+        } else if s.eq_ignore_ascii_case("chrootdirectory") {
+            Ok(Self::ChrootDirectory)
+        } else if s.eq_ignore_ascii_case("clientalivecountmax") {
+            Ok(Self::ClientAliveCountMax)
+        } else if s.eq_ignore_ascii_case("clientaliveinterval") {
+            Ok(Self::ClientAliveInterval)
+        } else if s.eq_ignore_ascii_case("denygroups") {
+            Ok(Self::DenyGroups)
+        } else if s.eq_ignore_ascii_case("denyusers") {
+            Ok(Self::DenyUsers)
+        } else if s.eq_ignore_ascii_case("disableforwarding") {
+            Ok(Self::DisableForwarding)
+        } else if s.eq_ignore_ascii_case("exposeauthinfo") {
+            Ok(Self::ExposeAuthInfo)
+        } else if s.eq_ignore_ascii_case("forcecommand") {
+            Ok(Self::ForceCommand)
+        } else if s.eq_ignore_ascii_case("gssapicleanupcredentials") {
+            Ok(Self::GSSAPICleanupCredentials)
+        } else if s.eq_ignore_ascii_case("gssapistrictacceptorcheck") {
+            Ok(Self::GSSAPIStrictAcceptorCheck)
+        } else if s.eq_ignore_ascii_case("hostbasedacceptedkeytypes") {
+            Ok(Self::HostbasedAcceptedKeyTypes)
+        } else if s.eq_ignore_ascii_case("hostbasedusesnamefrompacketonly") {
+            Ok(Self::HostbasedUsesNameFromPacketOnly)
+        } else if s.eq_ignore_ascii_case("hostcertificate") {
+            Ok(Self::HostCertificate)
+        } else if s.eq_ignore_ascii_case("hostkey") {
+            Ok(Self::HostKey)
+        } else if s.eq_ignore_ascii_case("hostkeyagent") {
+            Ok(Self::HostKeyAgent)
+        } else if s.eq_ignore_ascii_case("ignorerhosts") {
+            Ok(Self::IgnoreRhosts)
+        } else if s.eq_ignore_ascii_case("ignoreuserknownhosts") {
+            Ok(Self::IgnoreUserKnownHosts)
+        } else if s.eq_ignore_ascii_case("kerberosauthentication") {
+            Ok(Self::KerberosAuthentication)
+        } else if s.eq_ignore_ascii_case("kerberosgetafstoken") {
+            Ok(Self::KerberosGetAFSToken)
+        } else if s.eq_ignore_ascii_case("kerberosorlocalpasswd") {
+            Ok(Self::KerberosOrLocalPasswd)
+        } else if s.eq_ignore_ascii_case("kerberosticketcleanup") {
+            Ok(Self::KerberosTicketCleanup)
+        } else if s.eq_ignore_ascii_case("listenaddress") {
+            Ok(Self::ListenAddress)
+        } else if s.eq_ignore_ascii_case("logingracetime") {
+            Ok(Self::LoginGraceTime)
+        } else if s.eq_ignore_ascii_case("maxauthtries") {
+            Ok(Self::MaxAuthTries)
+        } else if s.eq_ignore_ascii_case("maxsessions") {
+            Ok(Self::MaxSessions)
+        } else if s.eq_ignore_ascii_case("maxstartups") {
+            Ok(Self::MaxStartups)
+        } else if s.eq_ignore_ascii_case("permitemptypasswords") {
+            Ok(Self::PermitEmptyPasswords)
+        } else if s.eq_ignore_ascii_case("permitlisten") {
+            Ok(Self::PermitListen)
+        } else if s.eq_ignore_ascii_case("permitopen") {
+            Ok(Self::PermitOpen)
+        } else if s.eq_ignore_ascii_case("permitrootlogin") {
+            Ok(Self::PermitRootLogin)
+        } else if s.eq_ignore_ascii_case("permittty") {
+            Ok(Self::PermitTTY)
+        } else if s.eq_ignore_ascii_case("permittunnel") {
+            Ok(Self::PermitTunnel)
+        } else if s.eq_ignore_ascii_case("permituserenvironment") {
+            Ok(Self::PermitUserEnvironment)
+        } else if s.eq_ignore_ascii_case("permituserrc") {
+            Ok(Self::PermitUserRC)
+        } else if s.eq_ignore_ascii_case("pidfile") {
+            Ok(Self::PidFile)
+        } else if s.eq_ignore_ascii_case("printlastlog") {
+            Ok(Self::PrintLastLog)
+        } else if s.eq_ignore_ascii_case("printmotd") {
+            Ok(Self::PrintMotd)
+        } else if s.eq_ignore_ascii_case("revokedkeys") {
+            Ok(Self::RevokedKeys)
+        } else if s.eq_ignore_ascii_case("rdomain") {
+            Ok(Self::RDomain)
+        } else if s.eq_ignore_ascii_case("strictmodes") {
+            Ok(Self::StrictModes)
+        } else if s.eq_ignore_ascii_case("subsystem") {
+            Ok(Self::Subsystem)
+        } else if s.eq_ignore_ascii_case("trustedusercakeys") {
+            Ok(Self::TrustedUserCAKeys)
+        } else if s.eq_ignore_ascii_case("useblacklist") {
+            Ok(Self::UseBlacklist)
+        } else if s.eq_ignore_ascii_case("usedns") {
+            Ok(Self::UseDNS)
+        } else if s.eq_ignore_ascii_case("usepam") {
+            Ok(Self::UsePAM)
+        } else if s.eq_ignore_ascii_case("versionaddendum") {
+            Ok(Self::VersionAddendum)
+        } else if s.eq_ignore_ascii_case("x11displayoffset") {
+            Ok(Self::X11DisplayOffset)
+        } else if s.eq_ignore_ascii_case("x11forwarding") {
+            Ok(Self::X11Forwarding)
+        } else if s.eq_ignore_ascii_case("x11uselocalhost") {
+            Ok(Self::X11UseLocalhost)
         } else {
             Err(ConfigError::SshOptionUnknown { key: s.to_string() })
         }
@@ -1606,6 +2395,69 @@ impl fmt::Display for SshOptionKey {
             Self::VisualHostKey => write!(f, "VisualHostKey"),
             Self::XAuthLocation => write!(f, "XAuthLocation"),
             Self::PubkeyAcceptedKeyTypes => write!(f, "PubkeyAcceptedKeyTypes"),
+            Self::AcceptEnv => write!(f, "AcceptEnv"),
+            Self::AllowAgentForwarding => write!(f, "AllowAgentForwarding"),
+            Self::AllowGroups => write!(f, "AllowGroups"),
+            Self::AllowStreamLocalForwarding => write!(f, "AllowStreamLocalForwarding"),
+            Self::AllowTcpForwarding => write!(f, "AllowTcpForwarding"),
+            Self::AllowUsers => write!(f, "AllowUsers"),
+            Self::AuthenticationMethods => write!(f, "AuthenticationMethods"),
+            Self::AuthorizedKeysCommand => write!(f, "AuthorizedKeysCommand"),
+            Self::AuthorizedKeysCommandUser => write!(f, "AuthorizedKeysCommandUser"),
+            Self::AuthorizedKeysFile => write!(f, "AuthorizedKeysFile"),
+            Self::AuthorizedPrincipalsCommand => write!(f, "AuthorizedPrincipalsCommand"),
+            Self::AuthorizedPrincipalsCommandUser => write!(f, "AuthorizedPrincipalsCommandUser"),
+            Self::AuthorizedPrincipalsFile => write!(f, "AuthorizedPrincipalsFile"),
+            Self::Banner => write!(f, "Banner"),
+            Self::ChrootDirectory => write!(f, "ChrootDirectory"),
+            Self::ClientAliveCountMax => write!(f, "ClientAliveCountMax"),
+            Self::ClientAliveInterval => write!(f, "ClientAliveInterval"),
+            Self::DenyGroups => write!(f, "DenyGroups"),
+            Self::DenyUsers => write!(f, "DenyUsers"),
+            Self::DisableForwarding => write!(f, "DisableForwarding"),
+            Self::ExposeAuthInfo => write!(f, "ExposeAuthInfo"),
+            Self::ForceCommand => write!(f, "ForceCommand"),
+            Self::GSSAPICleanupCredentials => write!(f, "GSSAPICleanupCredentials"),
+            Self::GSSAPIStrictAcceptorCheck => write!(f, "GSSAPIStrictAcceptorCheck"),
+            Self::HostbasedAcceptedKeyTypes => write!(f, "HostbasedAcceptedKeyTypes"),
+            Self::HostbasedUsesNameFromPacketOnly => write!(f, "HostbasedUsesNameFromPacketOnly"),
+            Self::HostCertificate => write!(f, "HostCertificate"),
+            Self::HostKey => write!(f, "HostKey"),
+            Self::HostKeyAgent => write!(f, "HostKeyAgent"),
+            Self::IgnoreRhosts => write!(f, "IgnoreRhosts"),
+            Self::IgnoreUserKnownHosts => write!(f, "IgnoreUserKnownHosts"),
+            Self::KerberosAuthentication => write!(f, "KerberosAuthentication"),
+            Self::KerberosGetAFSToken => write!(f, "KerberosGetAFSToken"),
+            Self::KerberosOrLocalPasswd => write!(f, "KerberosOrLocalPasswd"),
+            Self::KerberosTicketCleanup => write!(f, "KerberosTicketCleanup"),
+            Self::ListenAddress => write!(f, "ListenAddress"),
+            Self::LoginGraceTime => write!(f, "LoginGraceTime"),
+            Self::MaxAuthTries => write!(f, "MaxAuthTries"),
+            Self::MaxSessions => write!(f, "MaxSessions"),
+            Self::MaxStartups => write!(f, "MaxStartups"),
+            Self::PermitEmptyPasswords => write!(f, "PermitEmptyPasswords"),
+            Self::PermitListen => write!(f, "PermitListen"),
+            Self::PermitOpen => write!(f, "PermitOpen"),
+            Self::PermitRootLogin => write!(f, "PermitRootLogin"),
+            Self::PermitTTY => write!(f, "PermitTTY"),
+            Self::PermitTunnel => write!(f, "PermitTunnel"),
+            Self::PermitUserEnvironment => write!(f, "PermitUserEnvironment"),
+            Self::PermitUserRC => write!(f, "PermitUserRC"),
+            Self::PidFile => write!(f, "PidFile"),
+            Self::PrintLastLog => write!(f, "PrintLastLog"),
+            Self::PrintMotd => write!(f, "PrintMotd"),
+            Self::RevokedKeys => write!(f, "RevokedKeys"),
+            Self::RDomain => write!(f, "RDomain"),
+            Self::StrictModes => write!(f, "StrictModes"),
+            Self::Subsystem => write!(f, "Subsystem"),
+            Self::TrustedUserCAKeys => write!(f, "TrustedUserCAKeys"),
+            Self::UseBlacklist => write!(f, "UseBlacklist"),
+            Self::UseDNS => write!(f, "UseDNS"),
+            Self::UsePAM => write!(f, "UsePAM"),
+            Self::VersionAddendum => write!(f, "VersionAddendum"),
+            Self::X11DisplayOffset => write!(f, "X11DisplayOffset"),
+            Self::X11Forwarding => write!(f, "X11Forwarding"),
+            Self::X11UseLocalhost => write!(f, "X11UseLocalhost"),
         }
     }
 }
