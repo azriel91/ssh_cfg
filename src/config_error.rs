@@ -6,7 +6,7 @@ use crate::SshOptionKey;
 #[derive(Debug)]
 pub enum ConfigError {
     /// An SSH option is provided before the `Host` key.
-    SshOptionBeforeHost {
+    SshOptionBeforeHostOrMatch {
         /// The SSH option.
         option: SshOptionKey,
         /// Value provided to the key.
@@ -27,10 +27,10 @@ pub enum ConfigError {
 impl fmt::Display for ConfigError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            Self::SshOptionBeforeHost { option, .. } => {
+            Self::SshOptionBeforeHostOrMatch { option, .. } => {
                 write!(
                     f,
-                    "SSH option `{option}` provided before `Host` is specified.",
+                    "SSH option `{option}` provided before `Host` or `Match` is specified.",
                 )
             }
             Self::SshOptionUnknown { key } => {
@@ -48,7 +48,7 @@ impl fmt::Display for ConfigError {
 impl std::error::Error for ConfigError {
     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
         match self {
-            Self::SshOptionBeforeHost { .. } => None,
+            Self::SshOptionBeforeHostOrMatch { .. } => None,
             Self::SshOptionUnknown { .. } => None,
             Self::KeyValueNotFound { .. } => None,
         }

@@ -60,7 +60,9 @@ impl SshConfigParser {
                 }
             };
 
-            if let SshOptionKey::Host = ssh_option_key {
+            // Check if we're starting a new section,
+            // if so we need to save the last parsed section.
+            if let SshOptionKey::Host | SshOptionKey::Match = ssh_option_key {
                 if let Some(current_section) = current_section.take() {
                     ssh_config.insert(current_section, ssh_section_config);
 
@@ -68,18 +70,34 @@ impl SshConfigParser {
                     ssh_section_config = SshSectionConfig::default();
                 }
 
-                current_section = Some(SshSection::Host(value.to_string()));
-            } else if current_section.is_none() {
-                errors.push(ConfigError::SshOptionBeforeHost {
-                    option: ssh_option_key,
-                    value: value.to_string(),
+                current_section = Some(match ssh_option_key {
+                    SshOptionKey::Host => SshSection::Host(value.to_string()),
+                    SshOptionKey::Match => SshSection::Match(value.to_string()),
+                    _ => unreachable!("Guarded by condition"),
                 });
+            } else if SshOptionKey::Include == ssh_option_key {
+                if current_section.is_some() {
+                    ssh_section_config.insert(ssh_option_key, value.to_string());
+                } else {
+                    current_section = Some(SshSection::Include(value.to_string()))
+                }
             } else {
-                ssh_section_config.insert(ssh_option_key, value.to_string());
+                // Only `Host` and `Match` sections are allowed to have other keys
+                match current_section {
+                    Some(SshSection::Host(_) | SshSection::Match(_)) => {
+                        ssh_section_config.insert(ssh_option_key, value.to_string());
+                    }
+                    Some(SshSection::Include(_)) | None => {
+                        errors.push(ConfigError::SshOptionBeforeHostOrMatch {
+                            option: ssh_option_key,
+                            value: value.to_string(),
+                        });
+                    }
+                }
             }
         }
 
-        // Insert the final host's config.
+        // Insert the final section's config.
         if let Some(current_section) = current_section.take() {
             ssh_config.insert(current_section, ssh_section_config);
         }
