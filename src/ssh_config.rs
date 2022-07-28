@@ -5,7 +5,7 @@ use indexmap::IndexMap;
 use crate::{SshSection, SshSectionConfig};
 
 /// Parsed SSH config file.
-#[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct SshConfig(pub IndexMap<SshSection, SshSectionConfig>);
 
 impl Deref for SshConfig {
