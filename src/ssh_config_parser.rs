@@ -2,7 +2,7 @@ use std::path::Path;
 
 use plain_path::PlainPathExt;
 
-use crate::{ConfigError, Error, SshConfig, SshHostConfig, SshOptionKey};
+use crate::{ConfigError, Error, SshConfig, SshOptionKey, SshSection, SshSectionConfig};
 
 /// Parses SSH configuration file into [`SshConfig`].
 pub struct SshConfigParser;
@@ -49,8 +49,8 @@ impl SshConfigParser {
         let kv_pairs = Self::kv_pairs(ssh_config_contents, &mut errors).into_iter();
 
         let mut ssh_config = SshConfig::default();
-        let mut current_host = None;
-        let mut ssh_host_config = SshHostConfig::default();
+        let mut current_section = None;
+        let mut ssh_section_config = SshSectionConfig::default();
         for (key, value) in kv_pairs {
             let ssh_option_key = match key.parse::<SshOptionKey>() {
                 Ok(ssh_option_key) => ssh_option_key,
@@ -61,27 +61,27 @@ impl SshConfigParser {
             };
 
             if let SshOptionKey::Host = ssh_option_key {
-                if let Some(current_host) = current_host.take() {
-                    ssh_config.insert(current_host, ssh_host_config);
+                if let Some(current_section) = current_section.take() {
+                    ssh_config.insert(current_section, ssh_section_config);
 
                     // Initialize new config for the next host.
-                    ssh_host_config = SshHostConfig::default();
+                    ssh_section_config = SshSectionConfig::default();
                 }
 
-                current_host = Some(value.to_string());
-            } else if current_host.is_none() {
+                current_section = Some(SshSection::Host(value.to_string()));
+            } else if current_section.is_none() {
                 errors.push(ConfigError::SshOptionBeforeHost {
                     option: ssh_option_key,
                     value: value.to_string(),
                 });
             } else {
-                ssh_host_config.insert(ssh_option_key, value.to_string());
+                ssh_section_config.insert(ssh_option_key, value.to_string());
             }
         }
 
         // Insert the final host's config.
-        if let Some(current_host) = current_host.take() {
-            ssh_config.insert(current_host, ssh_host_config);
+        if let Some(current_section) = current_section.take() {
+            ssh_config.insert(current_section, ssh_section_config);
         }
 
         if errors.is_empty() {
