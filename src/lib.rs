@@ -37,13 +37,14 @@
 
 pub use crate::{
     config_error::ConfigError, error::Error, ssh_config::SshConfig,
-    ssh_config_parser::SshConfigParser, ssh_host_config::SshHostConfig,
-    ssh_option_key::SshOptionKey,
+    ssh_config_parser::SshConfigParser, ssh_option_key::SshOptionKey, ssh_section::SshSection,
+    ssh_section_config::SshSectionConfig,
 };
 
 mod config_error;
 mod error;
 mod ssh_config;
 mod ssh_config_parser;
-mod ssh_host_config;
 mod ssh_option_key;
+mod ssh_section;
+mod ssh_section_config;

@@ -4,11 +4,11 @@ use indexmap::IndexMap;
 
 use crate::SshOptionKey;
 
-/// Keys for a particular SSH host.
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct SshHostConfig(pub IndexMap<SshOptionKey, String>);
+/// Keys for a particular SSH section.
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct SshSectionConfig(pub IndexMap<SshOptionKey, String>);
 
-impl Deref for SshHostConfig {
+impl Deref for SshSectionConfig {
     type Target = IndexMap<SshOptionKey, String>;
 
     fn deref(&self) -> &Self::Target {
@@ -16,7 +16,7 @@ impl Deref for SshHostConfig {
     }
 }
 
-impl DerefMut for SshHostConfig {
+impl DerefMut for SshSectionConfig {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.0
     }

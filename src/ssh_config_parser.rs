@@ -2,7 +2,7 @@ use std::path::Path;
 
 use plain_path::PlainPathExt;
 
-use crate::{ConfigError, Error, SshConfig, SshHostConfig, SshOptionKey};
+use crate::{ConfigError, Error, SshConfig, SshOptionKey, SshSection, SshSectionConfig};
 
 /// Parses SSH configuration file into [`SshConfig`].
 pub struct SshConfigParser;
@@ -49,8 +49,8 @@ impl SshConfigParser {
         let kv_pairs = Self::kv_pairs(ssh_config_contents, &mut errors).into_iter();
 
         let mut ssh_config = SshConfig::default();
-        let mut current_host = None;
-        let mut ssh_host_config = SshHostConfig::default();
+        let mut current_section = None;
+        let mut ssh_section_config = SshSectionConfig::default();
         for (key, value) in kv_pairs {
             let ssh_option_key = match key.parse::<SshOptionKey>() {
                 Ok(ssh_option_key) => ssh_option_key,
@@ -60,28 +60,46 @@ impl SshConfigParser {
                 }
             };
 
-            if let SshOptionKey::Host = ssh_option_key {
-                if let Some(current_host) = current_host.take() {
-                    ssh_config.insert(current_host, ssh_host_config);
+            // Check if we're starting a new section,
+            // if so we need to save the last parsed section.
+            if let SshOptionKey::Host | SshOptionKey::Match = ssh_option_key {
+                if let Some(current_section) = current_section.take() {
+                    ssh_config.insert(current_section, ssh_section_config);
 
                     // Initialize new config for the next host.
-                    ssh_host_config = SshHostConfig::default();
+                    ssh_section_config = SshSectionConfig::default();
                 }
 
-                current_host = Some(value.to_string());
-            } else if current_host.is_none() {
-                errors.push(ConfigError::SshOptionBeforeHost {
-                    option: ssh_option_key,
-                    value: value.to_string(),
+                current_section = Some(match ssh_option_key {
+                    SshOptionKey::Host => SshSection::Host(value.to_string()),
+                    SshOptionKey::Match => SshSection::Match(value.to_string()),
+                    _ => unreachable!("Guarded by condition"),
                 });
+            } else if SshOptionKey::Include == ssh_option_key {
+                if current_section.is_some() {
+                    ssh_section_config.insert(ssh_option_key, value.to_string());
+                } else {
+                    current_section = Some(SshSection::Include(value.to_string()))
+                }
             } else {
-                ssh_host_config.insert(ssh_option_key, value.to_string());
+                // Only `Host` and `Match` sections are allowed to have other keys
+                match current_section {
+                    Some(SshSection::Host(_) | SshSection::Match(_)) => {
+                        ssh_section_config.insert(ssh_option_key, value.to_string());
+                    }
+                    Some(SshSection::Include(_)) | None => {
+                        errors.push(ConfigError::SshOptionBeforeHostOrMatch {
+                            option: ssh_option_key,
+                            value: value.to_string(),
+                        });
+                    }
+                }
             }
         }
 
-        // Insert the final host's config.
-        if let Some(current_host) = current_host.take() {
-            ssh_config.insert(current_host, ssh_host_config);
+        // Insert the final section's config.
+        if let Some(current_section) = current_section.take() {
+            ssh_config.insert(current_section, ssh_section_config);
         }
 
         if errors.is_empty() {
