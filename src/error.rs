@@ -29,7 +29,7 @@ impl fmt::Display for Error {
 
                 errors
                     .iter()
-                    .try_for_each(|error| writeln!(f, "* {}", error))?;
+                    .try_for_each(|error| writeln!(f, "* {error}"))?;
 
                 writeln!(f)
             }

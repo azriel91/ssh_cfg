@@ -30,18 +30,16 @@ impl fmt::Display for ConfigError {
             Self::SshOptionBeforeHost { option, .. } => {
                 write!(
                     f,
-                    "SSH option `{}` provided before `Host` is specified.",
-                    option,
+                    "SSH option `{option}` provided before `Host` is specified.",
                 )
             }
             Self::SshOptionUnknown { key } => {
-                write!(f, "Unknown SSH configuration option `{}`.", key)
+                write!(f, "Unknown SSH configuration option `{key}`.")
             }
             Self::KeyValueNotFound { line } => write!(
                 f,
-                "Could not determine key / value for this line: `{}`.\n\
-                    Key / value pairs must be separated by ` ` or `=`.",
-                line
+                "Could not determine key / value for this line: `{line}`.\n\
+                    Key / value pairs must be separated by ` ` or `=`."
             ),
         }
     }
